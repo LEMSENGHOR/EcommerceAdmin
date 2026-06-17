@@ -61,19 +61,19 @@ const router = createRouter({
     // }
   ],
 });
-// router.beforeEach((to, from) => {
-//   const token = localStorage.getItem('token')
+router.beforeEach((to, from) => {
+  const token = localStorage.getItem('token')
 
-//   if (to.meta.requiresAuth && !token) {
-//     // Not logged in → redirect to login
-//     return { name: 'login' }
-//   }
+  if (to.meta.requiresAuth && !token) {
+    // Not logged in → redirect to login
+    return { name: 'login' }
+  }
 
-//   if (to.meta.guest && token) {
-//     // Already logged in → redirect to dashboard
-//     return { name: 'dashboard' }
-//   }
+  if (to.meta.guest && token) {
+    // Already logged in → redirect to dashboard
+    return { name: 'dashboard' }
+  }
 
-//   return true
-// })
+  return true
+})
 export default router;

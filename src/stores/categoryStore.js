@@ -20,14 +20,16 @@ export const useCategoryStore = defineStore("category", {
     form: {
       name: "",
       description: "",
-      status: "active",
       parent_id: null,
+      status: "active",
+      icon: null,
+      image: null,
     },
 
     // ── Search & Pagination ──
     searchQuery: "",
     currentPage: 1,
-    perPage: 10,
+    perPage: 20,
     total: 0,
     lastPage: 1,
 
@@ -36,6 +38,7 @@ export const useCategoryStore = defineStore("category", {
   }),
 
   getters: {
+    // Filter categories based on search
     filteredCategories: (state) => {
       if (!state.searchQuery) return state.categories;
       const q = state.searchQuery.toLowerCase();
@@ -47,23 +50,18 @@ export const useCategoryStore = defineStore("category", {
     },
 
     hasCategories: (state) => state.categories.length > 0,
-    activeCount: (state) =>
-      state.categories.filter((c) => (c.status || "active") === "active")
-        .length,
-    inactiveCount: (state) =>
-      state.categories.filter((c) => c.status === "inactive").length,
 
-    // Build tree structure if categories have parent_id
+    // Build tree structure for nested categories
     categoryTree: (state) => {
       const map = new Map();
       const roots = [];
 
-      // First pass: create map
+      // First pass: create map of all nodes
       state.categories.forEach((c) => {
         map.set(c.id, { ...c, children: [] });
       });
 
-      // Second pass: build tree
+      // Second pass: link children to parents
       state.categories.forEach((c) => {
         const node = map.get(c.id);
         if (c.parent_id && map.has(c.parent_id)) {
@@ -74,6 +72,11 @@ export const useCategoryStore = defineStore("category", {
       });
 
       return roots;
+    },
+
+    // Get category by ID
+    getCategoryById: (state) => (id) => {
+      return state.categories.find((c) => c.id === id);
     },
   },
 
@@ -95,19 +98,21 @@ export const useCategoryStore = defineStore("category", {
       this.form = {
         name: "",
         description: "",
-        status: "active",
         parent_id: null,
+        status: "active",
+        icon: null,
+        image: null,
       };
     },
 
     // ───────────────────────────────────────────────
-    // 1. FETCH CATEGORIES
-    //    GET /api/categories
+    // 1. GET CATEGORIES
+    //    GET /categories
     // ───────────────────────────────────────────────
     async fetchCategories() {
       this.loading = true;
       try {
-        const response = await api.get("/api/categories", {
+        const response = await api.get("/categories", {
           params: {
             page: this.currentPage,
             per_page: this.perPage,
@@ -117,7 +122,7 @@ export const useCategoryStore = defineStore("category", {
 
         const payload = response.data;
 
-        // Support multiple response shapes
+        // Support multiple response shapes (Laravel standard vs simple array)
         if (Array.isArray(payload)) {
           this.categories = payload;
           this.total = payload.length;
@@ -140,14 +145,45 @@ export const useCategoryStore = defineStore("category", {
     },
 
     // ───────────────────────────────────────────────
-    // 2. CREATE CATEGORY
-    //    POST /api/categories
+    // 2. POST NEW CATEGORY
+    //    POST /categories
     // ───────────────────────────────────────────────
     async createCategory() {
       this.saving = true;
       try {
-        const response = await api.post("/api/categories", this.form);
-        this.categories.unshift(response.data.data || response.data);
+        // Use FormData if uploading images/icons
+        let payload;
+        let config = {};
+
+        if (this.form.image || this.form.icon) {
+          payload = new FormData();
+          payload.append("name", this.form.name);
+          payload.append("description", this.form.description);
+          payload.append("status", this.form.status);
+          if (this.form.parent_id)
+            payload.append("parent_id", this.form.parent_id);
+          if (this.form.image) payload.append("image", this.form.image);
+          if (this.form.icon) payload.append("icon", this.form.icon);
+
+          config = {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          };
+        } else {
+          payload = {
+            name: this.form.name,
+            description: this.form.description,
+            parent_id: this.form.parent_id,
+            status: this.form.status,
+          };
+        }
+
+        const response = await api.post("/categories", payload, config);
+
+        const newCategory = response.data.data || response.data;
+        this.categories.unshift(newCategory);
+
         this.showToast("Category created successfully");
         this.showFormModal = false;
         this.resetForm();
@@ -161,17 +197,47 @@ export const useCategoryStore = defineStore("category", {
     },
 
     // ───────────────────────────────────────────────
-    // 3. UPDATE CATEGORY
-    //    PUT /api/categories/{id}
+    // 3. PUT UPDATE CATEGORY
+    //    PUT /categories/{id}
     // ───────────────────────────────────────────────
     async updateCategory() {
       if (!this.selectedCategory) return false;
 
       this.saving = true;
       try {
-        const response = await api.put(
-          `/api/categories/${this.selectedCategory.id}`,
-          this.form,
+        let payload;
+        let config = {};
+
+        // Use FormData for uploads, otherwise JSON
+        if (this.form.image || this.form.icon) {
+          payload = new FormData();
+          payload.append("_method", "PUT"); // For Laravel support
+          payload.append("name", this.form.name);
+          payload.append("description", this.form.description);
+          payload.append("status", this.form.status);
+          if (this.form.parent_id)
+            payload.append("parent_id", this.form.parent_id);
+          if (this.form.image) payload.append("image", this.form.image);
+          if (this.form.icon) payload.append("icon", this.form.icon);
+
+          config = {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          };
+        } else {
+          payload = {
+            name: this.form.name,
+            description: this.form.description,
+            parent_id: this.form.parent_id,
+            status: this.form.status,
+          };
+        }
+
+        const response = await api.post(
+          `/categories/${this.selectedCategory.id}`,
+          payload,
+          config,
         );
 
         // Update local state
@@ -200,13 +266,16 @@ export const useCategoryStore = defineStore("category", {
 
     // ───────────────────────────────────────────────
     // 4. DELETE CATEGORY
-    //    DELETE /api/categories/{id}
+    //    DELETE /categories/{id}
     // ───────────────────────────────────────────────
     async deleteCategory(id) {
       this.deleting = true;
       try {
-        await api.delete(`/api/categories/${id}`);
+        await api.delete(`/categories/${id}`);
+
+        // Remove from local state
         this.categories = this.categories.filter((c) => c.id !== id);
+
         this.showToast("Category deleted successfully");
         return true;
       } catch (err) {
@@ -218,7 +287,7 @@ export const useCategoryStore = defineStore("category", {
     },
 
     // ───────────────────────────────────────────────
-    // Unified save (create or update)
+    // Unified save helper
     // ───────────────────────────────────────────────
     async saveCategory() {
       return this.isEditMode ? this.updateCategory() : this.createCategory();
@@ -240,8 +309,10 @@ export const useCategoryStore = defineStore("category", {
       this.form = {
         name: category.name || "",
         description: category.description || "",
-        status: category.status || "active",
         parent_id: category.parent_id || null,
+        status: category.status || "active",
+        icon: null, // Don't pre-fill file inputs
+        image: null,
       };
       this.showFormModal = true;
     },
@@ -266,22 +337,13 @@ export const useCategoryStore = defineStore("category", {
     },
 
     // ───────────────────────────────────────────────
-    // Centralized error handler (auth-aware)
+    // Centralized error handler
     // ───────────────────────────────────────────────
     handleError(err, fallbackMessage) {
       const status = err.response?.status;
       const message = err.response?.data?.message || fallbackMessage;
 
-      if (status === 401) {
-        this.showToast("Session expired. Please login again.", "error");
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("user");
-        setTimeout(() => {
-          window.location.href = "/login";
-        }, 1200);
-        return;
-      }
-
+      // Note: 401 errors are handled by the axios interceptor
       if (status === 403) {
         this.showToast("You don't have permission for this action.", "error");
         return;

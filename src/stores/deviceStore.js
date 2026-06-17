@@ -43,6 +43,11 @@ export const useDeviceStore = defineStore("device", {
       state.devices.filter((d) => (d.status || "active") === "active").length,
     inactiveCount: (state) =>
       state.devices.filter((d) => d.status === "inactive").length,
+
+    // Device by ID getter
+    getDeviceById: (state) => (id) => {
+      return state.devices.find((d) => d.id === id);
+    },
   },
 
   actions: {
@@ -58,19 +63,19 @@ export const useDeviceStore = defineStore("device", {
 
     // ───────────────────────────────────────────────
     // 1. FETCH DEVICES
-    //    GET /api/profile/devices?page=1&per_page=20
+    //    GET /profile/devices?page=1&per_page=20
     // ───────────────────────────────────────────────
     async fetchDevices() {
       this.loading = true;
       try {
-        const response = await api.get("/api/profile/devices", {
+        const response = await api.get("/profile/devices", {
           params: {
             page: this.currentPage,
             per_page: this.perPage,
           },
         });
 
-        // Support both paginated & non-paginated Laravel responses
+        // Support both paginated & non-paginated responses
         const payload = response.data;
         if (Array.isArray(payload)) {
           this.devices = payload;
@@ -165,26 +170,14 @@ export const useDeviceStore = defineStore("device", {
     },
 
     // ───────────────────────────────────────────────
-    // Centralized error handler (auth-aware)
+    // Centralized error handler
     // ───────────────────────────────────────────────
     handleError(err, fallbackMessage) {
       const status = err.response?.status;
       const message = err.response?.data?.message || fallbackMessage;
 
-      // 401 → token expired or not logged in → redirect to login
-      if (status === 401) {
-        this.showToast("Session expired. Please login again.", "error");
-        // Clear stored token
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("user");
-        // Redirect after short delay
-        setTimeout(() => {
-          window.location.href = "/login";
-        }, 1200);
-        return;
-      }
-
-      // 403 → no permission
+      // Note: 401 errors are handled by the axios interceptor
+      // This focuses on UI error feedback
       if (status === 403) {
         this.showToast("You don't have permission for this action.", "error");
         return;
