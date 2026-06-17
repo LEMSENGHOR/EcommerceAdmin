@@ -5,6 +5,7 @@ import Products from "@/views/Products.vue";
 import Categories from "@/views/Categories.vue";
 import Devices from "@/views/Devices.vue";
 // import AdminLayouts from '@/layouts/AdminLayout.vue'
+import Profile from "@/views/Profile.vue";
 import Carts from "@/views/Carts.vue";
 import Login from "@/views/Login.vue";
 import Payments from "@/views/Payments.vue";
@@ -48,6 +49,11 @@ const router = createRouter({
       name: "login",
       component: Login,
     },
+    {
+      path: "/profile",
+      name: "profile",
+      component: Profile,
+    }
     // {
     //   path: '/:pathMatch(.*)*',
     //   name: 'NotFound',
