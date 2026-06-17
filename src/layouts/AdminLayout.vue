@@ -11,7 +11,7 @@
     <!-- Sidebar -->
     <aside
       class="sidebar d-flex flex-column shrink-0 p-3 bg-dark text-white"
-      :class="{ 'show': isMobileOpen }"
+      :class="{ show: isMobileOpen }"
     >
       <!-- Brand Area -->
       <router-link
@@ -54,7 +54,7 @@
         <li class="mt-3 mb-1 px-3 text-uppercase small fw-bold opacity-50">
           Management
         </li>
-        
+
         <li>
           <router-link
             to="/products"
@@ -66,7 +66,7 @@
             Products
           </router-link>
         </li>
-        
+
         <li>
           <router-link
             to="/categories"
@@ -78,7 +78,7 @@
             Categories
           </router-link>
         </li>
-        
+
         <li>
           <router-link
             to="/devices"
@@ -90,7 +90,7 @@
             Devices
           </router-link>
         </li>
-        
+
         <li>
           <router-link
             to="/carts"
@@ -102,7 +102,7 @@
             Carts
           </router-link>
         </li>
-        
+
         <li>
           <router-link
             to="/payments"
@@ -119,7 +119,7 @@
         <li class="mt-3 mb-1 px-3 text-uppercase small fw-bold opacity-50">
           Account
         </li>
-        
+
         <li>
           <router-link
             to="/profile"
@@ -131,13 +131,9 @@
             Profile
           </router-link>
         </li>
-        
+
         <li>
-          <a 
-            href="#" 
-            class="nav-link text-white" 
-            @click.prevent="handleLogout"
-          >
+          <a href="#" class="nav-link text-white" @click.prevent="handleLogout">
             <i class="bi bi-box-arrow-right me-2"></i>
             Logout
           </a>
@@ -145,7 +141,7 @@
       </ul>
 
       <hr />
-      
+
       <!-- User Info at bottom -->
       <div class="dropdown">
         <a
@@ -167,21 +163,17 @@
           aria-labelledby="dropdownUser1"
         >
           <li>
-            <router-link 
-              to="/profile" 
+            <router-link
+              to="/profile"
               class="dropdown-item"
               @click="closeMobileSidebar"
             >
               Profile Settings
             </router-link>
           </li>
-          <li><hr class="dropdown-divider"></li>
+          <li><hr class="dropdown-divider" /></li>
           <li>
-            <a 
-              class="dropdown-item" 
-              href="#" 
-              @click.prevent="handleLogout"
-            >
+            <a class="dropdown-item" href="#" @click.prevent="handleLogout">
               Sign out
             </a>
           </li>
@@ -217,7 +209,7 @@
                   class="form-control"
                   placeholder="Search..."
                   aria-label="Search"
-                >
+                />
                 <span class="input-group-text">
                   <i class="bi bi-search"></i>
                 </span>
@@ -225,7 +217,9 @@
             </div>
 
             <!-- Notifications -->
-            <button class="btn btn-outline-secondary position-relative border-0">
+            <button
+              class="btn btn-outline-secondary position-relative border-0"
+            >
               <i class="bi bi-bell fs-5"></i>
               <span
                 v-if="notificationCount > 0"
@@ -257,18 +251,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 // import { useProfileStore } from '@/stores/ProfileStore.js';
-import { useProfileStore } from "@/stores/profileStore.js";
-
+import { useProfileStore } from "@/stores/profileStore";
 
 // Props
 const props = defineProps({
   pageTitle: {
     type: String,
-    default: 'Dashboard'
-  }
+    default: "Dashboard",
+  },
 });
 
 // Router
@@ -283,11 +276,11 @@ const notificationCount = ref(0);
 
 // Computed
 const userName = computed(() => {
-  return profileStore.profile.name || 'Admin';
+  return profileStore.profile.name || "Admin";
 });
 
 const userInitial = computed(() => {
-  const name = profileStore.profile.name || 'Admin';
+  const name = profileStore.profile.name || "Admin";
   return name.charAt(0).toUpperCase();
 });
 
@@ -303,21 +296,21 @@ const closeMobileSidebar = () => {
 const handleLogout = async () => {
   try {
     // Clear local storage
-    localStorage.removeItem('token');
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
-    
+    localStorage.removeItem("token");
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user");
+
     // Redirect to login
-    router.push('/login');
+    router.push("/login");
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error("Logout error:", error);
     // Force redirect even on error
-    router.push('/login');
+    router.push("/login");
   }
 };
 
 const handleImageError = (event) => {
-  event.target.style.display = 'none';
+  event.target.style.display = "none";
 };
 
 // Lifecycle
@@ -326,7 +319,7 @@ onMounted(async () => {
     // Fetch profile data
     await profileStore.fetchProfile();
   } catch (error) {
-    console.error('Failed to fetch profile:', error);
+    console.error("Failed to fetch profile:", error);
   }
 });
 </script>
@@ -376,7 +369,7 @@ onMounted(async () => {
     transform: none;
     z-index: 1;
   }
-  
+
   .mobile-overlay {
     display: none !important;
   }
@@ -450,7 +443,7 @@ onMounted(async () => {
   .page-title {
     font-size: 1rem;
   }
-  
+
   .header-actions {
     gap: 1rem;
   }

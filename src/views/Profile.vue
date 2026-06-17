@@ -32,7 +32,7 @@
         <!-- Avatar row -->
         <div class="d-flex align-items-center gap-4 mb-4 flex-wrap">
           <div
-            class="avatar-preview rounded-circle overflow-hidden bg-light d-flex align-items-center justify-content-center flex-shrink-0"
+            class="avatar-preview rounded-circle overflow-hidden bg-light d-flex align-items-center justify-content-center shrink-0"
             style="width:100px;height:100px;"
           >
             <img
@@ -235,7 +235,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from "vue";
-import { useProfileStore } from "@/stores/profileStore.js";
+import { useProfileStore } from "@/stores/profileStore";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 
 const store     = useProfileStore();
