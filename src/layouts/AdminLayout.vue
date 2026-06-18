@@ -28,7 +28,7 @@
           />
         </div>
         <div class="lh-1">
-          <h5 class="m-0 fs-5">Louk Bontor</h5>
+          <h5 class="m-0 fs-3">ពិភពទំនិញ</h5>
           <small class="opacity-75">Admin Panel</small>
         </div>
       </router-link>
@@ -160,6 +160,15 @@
           >
             {{ userInitial }}
           </div>
+          <!-- If avatar exists, show the image -->
+        <!-- <img
+          v-if="profileStore.profile?.avatar"
+          :src="profileStore.profile.avatar"
+          class="rounded-circle object-fit-cover me-2"
+          style="width: 40px; height: 40px;"
+          alt="Avatar"
+        /> -->
+
           <strong>{{ userName }}</strong>
         </a>
         <ul
@@ -182,7 +191,7 @@
               href="#" 
               @click.prevent="handleLogout"
             >
-              Sign out
+              Logout
             </a>
           </li>
         </ul>
@@ -237,11 +246,20 @@
 
             <!-- User Info (Desktop) -->
             <div class="d-flex align-items-center gap-2 d-none d-md-flex">
-              <div
+              <!-- <div
                 class="avatar-circle rounded-circle bg-primary text-white d-flex justify-content-center align-items-center fw-bold"
               >
                 {{ userInitial }}
-              </div>
+              </div> -->
+              <!-- If avatar exists, show the image -->
+         <div class=""> <img
+            v-if="profileStore.profile?.avatar"
+            :src="profileStore.profile.avatar"
+            class="rounded-circle object-fit-cover me-2"
+            style="width: 40px; height: 40px;"
+            alt="Avatar"
+          /></div>
+
               <span class="fw-bold small">{{ userName }}</span>
             </div>
           </div>
@@ -259,8 +277,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-// import { useProfileStore } from '@/stores/ProfileStore.js';
-import { useProfileStore } from "@/stores/profileStore.js";
+import { useProfileStore } from "../stores/ProfileStore";
 
 
 // Props
@@ -286,11 +303,15 @@ const userName = computed(() => {
   return profileStore.profile.name || 'Admin';
 });
 
+// const userInitial = computed(() => {
+//   const name = profileStore.profile.name || 'Admin';
+//   return name.charAt(0).toUpperCase();
+// });
 const userInitial = computed(() => {
-  const name = profileStore.profile.name || 'Admin';
+  // Fallback to 'User' if name is missing
+  const name = profileStore.profile?.name || "Admin";
   return name.charAt(0).toUpperCase();
 });
-
 // Methods
 const toggleMobileSidebar = () => {
   isMobileOpen.value = !isMobileOpen.value;

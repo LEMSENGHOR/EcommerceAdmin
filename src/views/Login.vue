@@ -107,57 +107,58 @@ const form = reactive({
   password: "",
 });
 
-// const handleLogin = async () => {
-//   loading.value = true;
-//   error.value = "";
-//   try {
-//     const response = await api.post("/login", {
-//       email: form.email,
-//       password: form.password,
-//     });
-//     const data = response.data;
-
-//     console.log("Full response:", data); // 👈 check this in console
-
-//     if (data.token) {
-//       localStorage.setItem("token", data.token);
-//       localStorage.setItem("user", JSON.stringify(data.user || {}));
-//       router.push("/");
-//     } else if (data.access_token) {          // 👈 some APIs use this
-//       localStorage.setItem("token", data.access_token);
-//       localStorage.setItem("user", JSON.stringify(data.user || {}));
-//       router.push("/");
-//     } else {
-//       error.value = data.message || "Invalid credentials";
-//     }
-//   } catch (err) {
-//     console.log("Status:", err.response?.status);
-//     console.log("Error data:", err.response?.data); // 👈 check this
-//     error.value = err.response?.data?.message || "Network error. Please try again.";
-//   } finally {
-//     loading.value = false;
-//   }
-// };
 const handleLogin = async () => {
   loading.value = true;
   error.value = "";
+  
   try {
+    // 1. Send request
     const response = await api.post("/login", {
       email: form.email,
       password: form.password,
     });
-    const data = response.data;
 
+    // 2. Handle Response Data
+    // Assuming API structure: { result: true, data: { token: "...", user: {...} } }
+    const data = response.data;
+    
+    // Check if the structure matches what you expect
     if (data.result && data.data?.token) {
-      localStorage.setItem("token", data.data.token); // ✅ data.data.token
-      localStorage.setItem("user", JSON.stringify(data.data)); // ✅ data.data has user info
+      const { token, ...user } = data.data;
+
+      // 3. Save to LocalStorage
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      // 4. Redirect
       router.push("/");
     } else {
-      error.value = data.message || "Invalid credentials";
+      // Fallback for different structures (just in case)
+      const token = data.token || data.access_token || data.data?.token;
+      const user = data.user || data.data?.user || data.data;
+      
+      if (token) {
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        router.push("/");
+      } else {
+        throw new Error("Token not found in response");
+      }
     }
   } catch (err) {
-    error.value =
-      err.response?.data?.message || "Network error. Please try again.";
+    console.error("Login Error:", err);
+    
+    // 5. Error Handling
+    // Check for specific message from backend or use generic message
+    if (err.response?.data?.message) {
+      error.value = err.response.data.message;
+    } else if (err.response?.data?.error) {
+      error.value = err.response.data.error;
+    } else if (err.message === "Token not found in response") {
+      error.value = "Server response format error. Contact admin.";
+    } else {
+      error.value = "Network error. Please check your connection.";
+    }
   } finally {
     loading.value = false;
   }
@@ -186,7 +187,7 @@ const handleLogin = async () => {
   font-weight: 700;
 }
 
-/* Make floating label + toggle button look seamless */
+/* Fix for floating label inside input-group */
 .input-group .form-floating .form-control {
   border-radius: 0.375rem 0 0 0.375rem;
 }
