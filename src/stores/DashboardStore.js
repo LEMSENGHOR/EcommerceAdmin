@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import api from "@/api/api.js";
 
 export const useDashboardStore = defineStore("dashboard", () => {
@@ -34,21 +34,92 @@ export const useDashboardStore = defineStore("dashboard", () => {
   const loading = ref(false);
   const refreshing = ref(false);
 
+  // ── Toast State ────────────────────────────────────
+  const toast = ref({
+    show: false,
+    message: "",
+    type: "success",
+  });
+
   // ── Helpers ─────────────────────────────────────────
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("km-KH", {
-      style: "currency",
-      currency: "KHR",
-    }).format(amount);
+    try {
+      return new Intl.NumberFormat("km-KH", {
+        style: "currency",
+        currency: "KHR",
+      }).format(amount);
+    } catch (err) {
+      console.error("Currency formatting error:", err);
+      return "១" + (amount || "0");
+    }
   };
 
-  // ── 1. FETCH DASHBOARD STATISTICS ───────────────────
+  // ── Toast Helper ────────────────────────────────────
+  const showToast = (message, type = "success") => {
+    toast.value = { show: true, message, type };
+    setTimeout(() => {
+      toast.value.show = false;
+    }, 3000);
+  };
+
+  // ── Error Handler ─────────────────────────────────────
+  const handleError = (err, fallbackMessage) => {
+    console.error("Dashboard Error:", err);
+    console.error("Error Details:", {
+      message: err.message,
+      response: err.response,
+      config: err.config,
+      request: err.request,
+    });
+
+    const status = err.response?.status;
+    const message = err.response?.data?.message || fallbackMessage;
+
+    // Handle different error types
+    if (status === 401) {
+      showToast("Session expired. Please login again.", "error");
+      return;
+    }
+
+    if (status === 403) {
+      showToast("You don't have permission to access this action.", "error");
+      return;
+    }
+
+    if (status === 404) {
+      showToast("Requested resource not found.", "error");
+      return;
+    }
+
+    if (status === 500) {
+      showToast("Server error. Please try again.", "error");
+      return;
+    }
+
+    // Default error
+    showToast(message, "error");
+  };
+
+  // ───────────────────────────────────────────────
+  // 1. FETCH DASHBOARD STATISTICS
   //    GET /dashboard/stats
+  // ───────────────────────────────────────────────
   const fetchStats = async () => {
     loading.value = true;
     try {
+      console.log("Fetching dashboard stats...");
+
       const res = await api.get("/dashboard/stats");
+      console.log("Stats response:", res);
+
+      // Support multiple response formats
       const data = res.data.data || res.data;
+      console.log("Parsed data:", data);
+
+      // Validate data
+      if (!data) {
+        throw new Error("No data received from API");
+      }
 
       stats.value = {
         totalUsers: data.total_users || 0,
@@ -60,95 +131,131 @@ export const useDashboardStore = defineStore("dashboard", () => {
         totalDevices: data.total_devices || 0,
         pendingPayments: data.pending_payments || 0,
       };
+
+      console.log("Stats updated:", stats.value);
     } catch (err) {
-      console.error("fetchStats error:", err);
-      throw err;
+      handleError(err, "Failed to load dashboard statistics");
     } finally {
       loading.value = false;
     }
   };
 
-  // ── 2. FETCH RECENT ACTIVITIES ─────────────────────
+  // ───────────────────────────────────────────────
+  // 2. FETCH RECENT ACTIVITIES
   //    GET /dashboard/activities
+  // ───────────────────────────────────────────────
   const fetchActivities = async () => {
     try {
+      console.log("Fetching recent activities...");
       const res = await api.get("/dashboard/activities");
-      recentActivities.value = res.data.data || res.data || [];
+      console.log("Activities response:", res);
+
+      const data = res.data.data || res.data;
+      recentActivities.value = Array.isArray(data) ? data : [];
+
+      console.log("Activities loaded:", recentActivities.value.length);
     } catch (err) {
-      console.error("fetchActivities error:", err);
-      throw err;
+      handleError(err, "Failed to load recent activities");
     }
   };
 
-  // ── 3. FETCH RECENT ORDERS ─────────────────────────
+  // ───────────────────────────────────────────────
+  // 3. FETCH RECENT ORDERS
   //    GET /dashboard/recent-orders
+  // ───────────────────────────────────────────────
   const fetchRecentOrders = async (limit = 5) => {
     try {
+      console.log("Fetching recent orders...");
       const res = await api.get("/dashboard/recent-orders", {
         params: { limit },
       });
-      recentOrders.value = res.data.data || res.data || [];
+      console.log("Orders response:", res);
+
+      const data = res.data.data || res.data;
+      recentOrders.value = Array.isArray(data) ? data : [];
+
+      console.log("Orders loaded:", recentOrders.value.length);
     } catch (err) {
-      console.error("fetchRecentOrders error:", err);
-      throw err;
+      handleError(err, "Failed to load recent orders");
     }
   };
 
-  // ── 4. FETCH TOP PRODUCTS ──────────────────────────
+  // ───────────────────────────────────────────────
+  // 4. FETCH TOP PRODUCTS
   //    GET /dashboard/top-products
+  // ───────────────────────────────────────────────
   const fetchTopProducts = async (limit = 5) => {
     try {
+      console.log("Fetching top products...");
       const res = await api.get("/dashboard/top-products", {
         params: { limit },
       });
-      topProducts.value = res.data.data || res.data || [];
+      console.log("Products response:", res);
+
+      const data = res.data.data || res.data;
+      topProducts.value = Array.isArray(data) ? data : [];
+
+      console.log("Top products loaded:", topProducts.value.length);
     } catch (err) {
-      console.error("fetchTopProducts error:", err);
-      throw err;
+      handleError(err, "Failed to load top products");
     }
   };
 
-  // ── 5. FETCH SALES CHART DATA ───────────────────────
+  // ───────────────────────────────────────────────
+  // 5. FETCH SALES CHART DATA
   //    GET /dashboard/sales-chart
+  // ───────────────────────────────────────────────
   const fetchSalesChart = async (period = "7days") => {
     try {
+      console.log(`Fetching sales chart for period: ${period}`);
       const res = await api.get("/dashboard/sales-chart", {
         params: { period },
       });
+      console.log("Sales chart response:", res);
+
       const data = res.data.data || res.data;
+      console.log("Sales chart data:", data);
 
       salesChart.value = {
         labels: data.labels || [],
         data: data.values || [],
       };
     } catch (err) {
-      console.error("fetchSalesChart error:", err);
-      throw err;
+      handleError(err, "Failed to load sales chart");
     }
   };
 
-  // ── 6. FETCH ORDERS CHART DATA ──────────────────────
+  // ───────────────────────────────────────────────
+  // 6. FETCH ORDERS CHART DATA
   //    GET /dashboard/orders-chart
+  // ───────────────────────────────────────────────
   const fetchOrdersChart = async (period = "7days") => {
     try {
+      console.log(`Fetching orders chart for period: ${period}`);
       const res = await api.get("/dashboard/orders-chart", {
         params: { period },
       });
+      console.log("Orders chart response:", res);
+
       const data = res.data.data || res.data;
+      console.log("Orders chart data:", data);
 
       ordersChart.value = {
         labels: data.labels || [],
         data: data.values || [],
       };
     } catch (err) {
-      console.error("fetchOrdersChart error:", err);
-      throw err;
+      handleError(err, "Failed to load orders chart");
     }
   };
 
-  // ── 7. REFRESH ALL DASHBOARD DATA ───────────────────
+  // ───────────────────────────────────────────────
+  // 7. REFRESH ALL DASHBOARD DATA
+  // ───────────────────────────────────────────────
   const refreshDashboard = async () => {
     refreshing.value = true;
+    showToast("កំពុង dashboard...", "info");
+
     try {
       await Promise.all([
         fetchStats(),
@@ -158,26 +265,49 @@ export const useDashboardStore = defineStore("dashboard", () => {
         fetchSalesChart(),
         fetchOrdersChart(),
       ]);
+
+      showToast("Dashboard refreshed successfully", "success");
     } catch (err) {
-      console.error("refreshDashboard error:", err);
-      throw err;
+      handleError(err, "Failed to refresh dashboard");
     } finally {
       refreshing.value = false;
     }
   };
 
-  // ── 8. QUICK ACTIONS ────────────────────────────────
+  // ───────────────────────────────────────────────
+  // 8. QUICK STATS
+  // ───────────────────────────────────────────────
   const quickStats = async () => {
     try {
       await fetchStats();
     } catch (err) {
-      console.error("quickStats error:", err);
-      throw err;
+      handleError(err, "Failed to load statistics");
     }
   };
 
+  // ───────────────────────────────────────────────
+  // 9. GET TOTAL REVENUE (computed helper)
+  // ───────────────────────────────────────────────
+  const totalRevenue = computed(() => {
+    return formatCurrency(stats.value.totalRevenue);
+  });
+
+  // ───────────────────────────────────────────────
+  // 10. GET ACTIVE COUNT (computed helper)
+  // ───────────────────────────────────────────────
+  const activeCategoriesCount = computed(() => {
+    return stats.value.activeCategories;
+  });
+
+  // ───────────────────────────────────────────────
+  // 11. GET PENDING COUNT (computed helper)
+  // ───────────────────────────────────────────────
+  const pendingOrdersCount = computed(() => {
+    return stats.value.pendingOrders;
+  });
+
   return {
-    // State
+    // ── State ──────────────────────
     stats,
     recentActivities,
     recentOrders,
@@ -186,8 +316,13 @@ export const useDashboardStore = defineStore("dashboard", () => {
     ordersChart,
     loading,
     refreshing,
+    toast,
 
-    // Actions
+    // ── Helpers ───────────────────────────────
+    formatCurrency,
+    showToast,
+
+    // ── Actions ──────────────────────────────
     fetchStats,
     fetchActivities,
     fetchRecentOrders,
@@ -196,6 +331,10 @@ export const useDashboardStore = defineStore("dashboard", () => {
     fetchOrdersChart,
     refreshDashboard,
     quickStats,
-    formatCurrency,
+
+    // ── Computed ─────────────────────────────
+    totalRevenue,
+    activeCategoriesCount,
+    pendingOrdersCount,
   };
 });

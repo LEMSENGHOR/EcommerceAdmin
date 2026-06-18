@@ -27,6 +27,7 @@ export const useProductsStore = defineStore("products", {
       price: "",
       image: null,
       category_ids: [],
+      status: "active", // Default status
     },
 
     // ── Search & Pagination ──
@@ -63,7 +64,7 @@ export const useProductsStore = defineStore("products", {
       return state.products.find((p) => p.id === id);
     },
 
-    // Resolve image URL
+    // Resolve image URL (handles relative and absolute paths)
     resolveProductImage: (state) => (imagePath) => {
       if (!imagePath) return null;
       if (imagePath.startsWith("http://") || imagePath.startsWith("https://"))
@@ -86,7 +87,7 @@ export const useProductsStore = defineStore("products", {
     },
 
     // ───────────────────────────────────────────────
-    // Reset form
+    // Reset form to defaults
     // ───────────────────────────────────────────────
     resetForm() {
       this.form = {
@@ -98,6 +99,7 @@ export const useProductsStore = defineStore("products", {
         price: "",
         image: null,
         category_ids: [],
+        status: "active",
       };
     },
 
@@ -118,7 +120,7 @@ export const useProductsStore = defineStore("products", {
 
         const payload = response.data;
 
-        // Support multiple response shapes
+        // Support multiple response shapes (Array vs Laravel Pagination Object)
         if (Array.isArray(payload)) {
           this.products = payload;
           this.total = payload.length;
@@ -154,24 +156,22 @@ export const useProductsStore = defineStore("products", {
         formData.append("condition", this.form.condition);
         formData.append("story", this.form.story);
         formData.append("price", this.form.price);
+        formData.append("status", this.form.status || "active");
 
         // Append image if exists
         if (this.form.image) {
           formData.append("image", this.form.image);
         }
 
-        // Append category_ids as array
+        // Append category_ids as array (Laravel standard)
         if (this.form.category_ids && this.form.category_ids.length > 0) {
           this.form.category_ids.forEach((categoryId) => {
             formData.append("category_ids[]", categoryId);
           });
         }
 
-        const response = await api.post("/products", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
+        // Axios automatically sets correct headers for FormData (multipart/form-data)
+        const response = await api.post("/products", formData);
 
         const newProduct = response.data.data || response.data;
         this.products.unshift(newProduct);
@@ -189,7 +189,7 @@ export const useProductsStore = defineStore("products", {
 
     // ───────────────────────────────────────────────
     // 3. UPDATE PRODUCT
-    //    POST /products/{id} (or PUT/PATCH depending on API)
+    //    POST /products/{id} (Laravel method spoofing)
     // ───────────────────────────────────────────────
     async updateProduct() {
       if (!this.selectedProduct) return false;
@@ -197,34 +197,31 @@ export const useProductsStore = defineStore("products", {
       this.saving = true;
       try {
         const formData = new FormData();
-        formData.append("_method", "PUT"); // Laravel support
+        formData.append("_method", "PUT"); // Laravel method spoofing
         formData.append("title", this.form.title);
         formData.append("description", this.form.description);
         formData.append("detail", this.form.detail);
         formData.append("condition", this.form.condition);
         formData.append("story", this.form.story);
         formData.append("price", this.form.price);
+        formData.append("status", this.form.status || "active");
 
         // Append image if new one selected
         if (this.form.image) {
           formData.append("image", this.form.image);
         }
 
-        // Append category_ids as array
+        // Append category_ids
         if (this.form.category_ids && this.form.category_ids.length > 0) {
           this.form.category_ids.forEach((categoryId) => {
             formData.append("category_ids[]", categoryId);
           });
         }
 
+        // Axios automatically sets correct headers
         const response = await api.post(
           `/products/${this.selectedProduct.id}`,
           formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          },
         );
 
         // Update local state
@@ -271,7 +268,7 @@ export const useProductsStore = defineStore("products", {
     },
 
     // ───────────────────────────────────────────────
-    // 5. UPLOAD PRODUCT IMAGE SEPARATELY (optional)
+    // 5. UPLOAD PRODUCT IMAGE SEPARATELY (Optional)
     //    POST /products/{id}/image
     // ───────────────────────────────────────────────
     async uploadProductImage(productId, file) {
@@ -285,11 +282,6 @@ export const useProductsStore = defineStore("products", {
         const response = await api.post(
           `/products/${productId}/image`,
           formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          },
         );
 
         // Update local state
@@ -336,6 +328,7 @@ export const useProductsStore = defineStore("products", {
         condition: product.condition || "new",
         story: product.story || "",
         price: product.price || "",
+        status: product.status || "active",
         image: null, // Don't set existing image to avoid re-uploading
         category_ids: product.category_ids || [],
       };
@@ -368,13 +361,13 @@ export const useProductsStore = defineStore("products", {
       const status = err.response?.status;
       const message = err.response?.data?.message || fallbackMessage;
 
-      // Note: 401 errors are handled by the axios interceptor
+      // Note: 401 errors are handled globally by the axios interceptor in api.js
       if (status === 403) {
         this.showToast("You don't have permission for this action.", "error");
         return;
       }
 
-      // 422 → validation
+      // 422 → Validation error
       if (status === 422 && err.response?.data?.errors) {
         const firstError = Object.values(err.response.data.errors)[0]?.[0];
         this.showToast(firstError || message, "error");
