@@ -783,6 +783,15 @@ onMounted(() => {
   height: 64px;
 }
 
+/* Stat Cards */
+.stat-card {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
 @keyframes slideUp {
   from {
     transform: translateY(20px);

@@ -28,7 +28,11 @@
           />
         </div>
         <div class="lh-1">
-          <h5 class="m-0 fs-3">ពិភពទំនិញ</h5>
+          <div class="d-flex mb-2 align-items-center">
+            <img class="me-2 rounded-1" src="../assets/images/1logo.png" alt="" style="max-width: 17%;">
+            <h5 class="m-0 fs-3">ពិភពទំនិញ</h5>
+          </div>
+
           <small class="opacity-75">Admin Panel</small>
         </div>
       </router-link>
@@ -157,7 +161,7 @@
             {{ userInitial }}
           </div>
           <!-- If avatar exists, show the image -->
-        <!-- <img
+          <!-- <img
           v-if="profileStore.profile?.avatar"
           :src="profileStore.profile.avatar"
           class="rounded-circle object-fit-cover me-2"
@@ -182,11 +186,7 @@
           </li>
           <li><hr class="dropdown-divider" /></li>
           <li>
-            <a 
-              class="dropdown-item" 
-              href="#" 
-              @click.prevent="handleLogout"
-            >
+            <a class="dropdown-item" href="#" @click.prevent="handleLogout">
               Logout
             </a>
           </li>
@@ -250,13 +250,15 @@
                 {{ userInitial }}
               </div> -->
               <!-- If avatar exists, show the image -->
-         <div class=""> <img
-            v-if="profileStore.profile?.avatar"
-            :src="profileStore.profile.avatar"
-            class="rounded-circle object-fit-cover me-2"
-            style="width: 40px; height: 40px;"
-            alt="Avatar"
-          /></div>
+              <div class="">
+                <img
+                  v-if="profileStore.profile?.avatar"
+                  :src="profileStore.profile.avatar"
+                  class="rounded-circle object-fit-cover me-2"
+                  style="width: 40px; height: 40px"
+                  alt="Avatar"
+                />
+              </div>
 
               <span class="fw-bold small">{{ userName }}</span>
             </div>
@@ -280,7 +282,6 @@ import { useProfileStore } from "@/stores/profileStore";
 // import { ref, computed, onMounted } from 'vue';
 // import { useRouter } from 'vue-router';
 // import { useProfileStore } from "../stores/ProfileStore";
-
 
 // Props
 const props = defineProps({
