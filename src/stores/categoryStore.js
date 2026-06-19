@@ -38,7 +38,6 @@ export const useCategoryStore = defineStore("category", {
   }),
 
   getters: {
-    // Filter categories based on search
     filteredCategories: (state) => {
       if (!state.searchQuery) return state.categories;
       const q = state.searchQuery.toLowerCase();
@@ -56,12 +55,10 @@ export const useCategoryStore = defineStore("category", {
       const map = new Map();
       const roots = [];
 
-      // First pass: create map of all nodes
       state.categories.forEach((c) => {
         map.set(c.id, { ...c, children: [] });
       });
 
-      // Second pass: link children to parents
       state.categories.forEach((c) => {
         const node = map.get(c.id);
         if (c.parent_id && map.has(c.parent_id)) {
@@ -74,7 +71,6 @@ export const useCategoryStore = defineStore("category", {
       return roots;
     },
 
-    // Get category by ID
     getCategoryById: (state) => (id) => {
       return state.categories.find((c) => c.id === id);
     },
@@ -82,18 +78,13 @@ export const useCategoryStore = defineStore("category", {
 
   actions: {
     // ───────────────────────────────────────────────
-    // Toast helper
+    // HELPERS
     // ───────────────────────────────────────────────
     showToast(message, type = "success") {
       this.toast = { show: true, message, type };
-      setTimeout(() => {
-        this.toast.show = false;
-      }, 3000);
+      setTimeout(() => (this.toast.show = false), 3000);
     },
 
-    // ───────────────────────────────────────────────
-    // Reset form
-    // ───────────────────────────────────────────────
     resetForm() {
       this.form = {
         name: "",
@@ -106,8 +97,7 @@ export const useCategoryStore = defineStore("category", {
     },
 
     // ───────────────────────────────────────────────
-    // 1. GET CATEGORIES
-    //    GET /categories
+    // 1. GET CATEGORIES (GET /api/categories)
     // ───────────────────────────────────────────────
     async fetchCategories() {
       this.loading = true;
@@ -122,20 +112,23 @@ export const useCategoryStore = defineStore("category", {
 
         const payload = response.data;
 
-        // Support multiple response shapes (Laravel standard vs simple array)
+        // Handles both Array responses and { result: true, data: [...] } structures
         if (Array.isArray(payload)) {
           this.categories = payload;
           this.total = payload.length;
-          this.lastPage = 1;
-        } else if (payload.data && Array.isArray(payload.data)) {
+        } else if (payload.result && payload.data) {
           this.categories = payload.data;
-          this.total = payload.total ?? payload.data.length;
-          this.lastPage = payload.last_page ?? 1;
-          this.currentPage = payload.current_page ?? this.currentPage;
+          // Support pagination if provided
+          if (payload.paginate) {
+            this.total = payload.paginate.total;
+            this.lastPage = payload.paginate.last_page;
+            this.currentPage = payload.paginate.current_page;
+          } else {
+            this.total = payload.data.length;
+          }
         } else {
           this.categories = [];
           this.total = 0;
-          this.lastPage = 1;
         }
       } catch (err) {
         this.handleError(err, "Failed to load categories");
@@ -145,41 +138,23 @@ export const useCategoryStore = defineStore("category", {
     },
 
     // ───────────────────────────────────────────────
-    // 2. POST NEW CATEGORY
-    //    POST /categories
+    // 2. POST NEW CATEGORY (POST /api/categories)
     // ───────────────────────────────────────────────
     async createCategory() {
       this.saving = true;
       try {
-        // Use FormData if uploading images/icons
-        let payload;
-        let config = {};
+        const formData = new FormData();
+        formData.append("name", this.form.name);
+        formData.append("description", this.form.description);
+        formData.append("status", this.form.status);
 
-        if (this.form.image || this.form.icon) {
-          payload = new FormData();
-          payload.append("name", this.form.name);
-          payload.append("description", this.form.description);
-          payload.append("status", this.form.status);
-          if (this.form.parent_id)
-            payload.append("parent_id", this.form.parent_id);
-          if (this.form.image) payload.append("image", this.form.image);
-          if (this.form.icon) payload.append("icon", this.form.icon);
+        if (this.form.parent_id)
+          formData.append("parent_id", this.form.parent_id);
+        if (this.form.image) formData.append("image", this.form.image);
+        if (this.form.icon) formData.append("icon", this.form.icon);
 
-          config = {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          };
-        } else {
-          payload = {
-            name: this.form.name,
-            description: this.form.description,
-            parent_id: this.form.parent_id,
-            status: this.form.status,
-          };
-        }
-
-        const response = await api.post("/categories", payload, config);
+        // NO HEADERS PASSED! Axios handles multipart/form-data automatically.
+        const response = await api.post("/categories", formData);
 
         const newCategory = response.data.data || response.data;
         this.categories.unshift(newCategory);
@@ -197,47 +172,28 @@ export const useCategoryStore = defineStore("category", {
     },
 
     // ───────────────────────────────────────────────
-    // 3. PUT UPDATE CATEGORY
-    //    PUT /categories/{id}
+    // 3. PUT UPDATE CATEGORY (POST /api/categories/1)
     // ───────────────────────────────────────────────
     async updateCategory() {
       if (!this.selectedCategory) return false;
 
       this.saving = true;
       try {
-        let payload;
-        let config = {};
+        const formData = new FormData();
+        formData.append("_method", "PUT"); // Laravel method spoofing
+        formData.append("name", this.form.name);
+        formData.append("description", this.form.description);
+        formData.append("status", this.form.status);
 
-        // Use FormData for uploads, otherwise JSON
-        if (this.form.image || this.form.icon) {
-          payload = new FormData();
-          payload.append("_method", "PUT"); // For Laravel support
-          payload.append("name", this.form.name);
-          payload.append("description", this.form.description);
-          payload.append("status", this.form.status);
-          if (this.form.parent_id)
-            payload.append("parent_id", this.form.parent_id);
-          if (this.form.image) payload.append("image", this.form.image);
-          if (this.form.icon) payload.append("icon", this.form.icon);
+        if (this.form.parent_id)
+          formData.append("parent_id", this.form.parent_id);
+        if (this.form.image) formData.append("image", this.form.image);
+        if (this.form.icon) formData.append("icon", this.form.icon);
 
-          config = {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          };
-        } else {
-          payload = {
-            name: this.form.name,
-            description: this.form.description,
-            parent_id: this.form.parent_id,
-            status: this.form.status,
-          };
-        }
-
+        // NO HEADERS PASSED!
         const response = await api.post(
           `/categories/${this.selectedCategory.id}`,
-          payload,
-          config,
+          formData,
         );
 
         // Update local state
@@ -265,17 +221,13 @@ export const useCategoryStore = defineStore("category", {
     },
 
     // ───────────────────────────────────────────────
-    // 4. DELETE CATEGORY
-    //    DELETE /categories/{id}
+    // 4. DELETE CATEGORY (DELETE /api/categories/1)
     // ───────────────────────────────────────────────
     async deleteCategory(id) {
       this.deleting = true;
       try {
         await api.delete(`/categories/${id}`);
-
-        // Remove from local state
         this.categories = this.categories.filter((c) => c.id !== id);
-
         this.showToast("Category deleted successfully");
         return true;
       } catch (err) {
@@ -287,15 +239,12 @@ export const useCategoryStore = defineStore("category", {
     },
 
     // ───────────────────────────────────────────────
-    // Unified save helper
+    // UNIFIED SAVE & MODAL HELPERS
     // ───────────────────────────────────────────────
-    async saveCategory() {
+    saveCategory() {
       return this.isEditMode ? this.updateCategory() : this.createCategory();
     },
 
-    // ───────────────────────────────────────────────
-    // Modal helpers
-    // ───────────────────────────────────────────────
     openCreateModal() {
       this.isEditMode = false;
       this.selectedCategory = null;
@@ -311,7 +260,7 @@ export const useCategoryStore = defineStore("category", {
         description: category.description || "",
         parent_id: category.parent_id || null,
         status: category.status || "active",
-        icon: null, // Don't pre-fill file inputs
+        icon: null,
         image: null,
       };
       this.showFormModal = true;
@@ -323,9 +272,6 @@ export const useCategoryStore = defineStore("category", {
       this.resetForm();
     },
 
-    // ───────────────────────────────────────────────
-    // Search & Pagination
-    // ───────────────────────────────────────────────
     setSearchQuery(q) {
       this.searchQuery = q;
     },
@@ -336,26 +282,55 @@ export const useCategoryStore = defineStore("category", {
       this.fetchCategories();
     },
 
-    // ───────────────────────────────────────────────
-    // Centralized error handler
+    // handleError(err, fallbackMessage) {
+    //   const status = err.response?.status;
+    //   const message = err.response?.data?.message || fallbackMessage;
+
+    //   if (status === 403) {
+    //     this.showToast("You don't have permission for this action.", "error");
+    //     return;
+    //   }
+
+    //   if (status === 422 && err.response?.data?.errors) {
+    //     const firstError = Object.values(err.response.data.errors)[0]?.[0];
+    //     this.showToast(firstError || message, "error");
+    //     return;
+    //   }
+
+    //   this.showToast(message, "error");
+    // },
+        // ───────────────────────────────────────────────
+    // Centralized error handler (FIXED FOR YOUR API)
     // ───────────────────────────────────────────────
     handleError(err, fallbackMessage) {
       const status = err.response?.status;
-      const message = err.response?.data?.message || fallbackMessage;
+      const payload = err.response?.data;
 
-      // Note: 401 errors are handled by the axios interceptor
+      if (status === 422) {
+        let errorMsg = null;
+
+        // 1. Standard Laravel: { errors: { name: ["..."] } }
+        if (payload?.errors) {
+          errorMsg = Object.values(payload.errors)[0]?.[0];
+        } 
+        // 2. Your Custom API: { data: { name: ["..."] } }
+        else if (payload?.data && typeof payload.data === 'object') {
+          const firstKey = Object.keys(payload.data)[0];
+          if (Array.isArray(payload.data[firstKey])) {
+            errorMsg = payload.data[firstKey][0];
+          }
+        }
+
+        this.showToast(errorMsg || payload?.message || fallbackMessage, "error");
+        return;
+      }
+
       if (status === 403) {
         this.showToast("You don't have permission for this action.", "error");
         return;
       }
 
-      if (status === 422 && err.response?.data?.errors) {
-        const firstError = Object.values(err.response.data.errors)[0]?.[0];
-        this.showToast(firstError || message, "error");
-        return;
-      }
-
-      this.showToast(message, "error");
+      this.showToast(payload?.message || fallbackMessage, "error");
     },
   },
 });

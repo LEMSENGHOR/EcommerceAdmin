@@ -3,21 +3,31 @@ import api from "@/api/api.js";
 
 export const useProductsStore = defineStore("products", {
   state: () => ({
-    // ── Data ──
+    // ── PRODUCT DATA ──
     products: [],
-    selectedProduct: null,
+    product: null,
+    selectedProductId: null, // Track ID for editing
 
-    // ── UI Flags ──
+    // ── CATEGORY DATA ──
+    categories: [],
+
+    // ── UI FLAGS ──
     loading: false,
+    detailLoading: false,
     saving: false,
     deleting: false,
-    uploadingImage: false,
+    categoryLoading: false,
+    categorySaving: false,
+    categoryDeleting: false,
 
-    // ── Modal ──
+    // ── MODALS ──
     showFormModal: false,
+    showDetailModal: false,
+    showCategoryModal: false,
     isEditMode: false,
+    isCategoryEditMode: false,
 
-    // ── Form ──
+    // ── FORM (Product) ──
     form: {
       title: "",
       description: "",
@@ -27,113 +37,146 @@ export const useProductsStore = defineStore("products", {
       price: "",
       image: null,
       category_ids: [],
-      status: "active", // Default status
     },
 
-    // ── Search & Pagination ──
+    // ── FORM (Category) ──
+    categoryForm: {
+      name: "",
+      description: "",
+      image: null,
+    },
+
+    // ── Search, Pagination & Totals ──
     searchQuery: "",
     currentPage: 1,
-    perPage: 20,
+    perPage: 8,
     total: 0,
     lastPage: 1,
+    totalValue: 0, // Grand total of ALL products
 
     // ── Toast ──
     toast: { show: false, message: "", type: "success" },
   }),
 
   getters: {
-    filteredProducts: (state) => {
-      if (!state.searchQuery) return state.products;
-      const q = state.searchQuery.toLowerCase();
-      return state.products.filter(
-        (p) =>
-          (p.title || "").toLowerCase().includes(q) ||
-          (p.description || "").toLowerCase().includes(q) ||
-          (p.condition || "").toLowerCase().includes(q),
-      );
-    },
-
-    hasProducts: (state) => state.products.length > 0,
-    activeCount: (state) =>
-      state.products.filter((p) => (p.status || "active") === "active").length,
-    inactiveCount: (state) =>
-      state.products.filter((p) => p.status === "inactive").length,
-
-    // Get product by ID
-    getProductById: (state) => (id) => {
-      return state.products.find((p) => p.id === id);
-    },
-
-    // Resolve image URL (handles relative and absolute paths)
     resolveProductImage: (state) => (imagePath) => {
       if (!imagePath) return null;
-      if (imagePath.startsWith("http://") || imagePath.startsWith("https://"))
-        return imagePath;
-      if (imagePath.startsWith("/"))
-        return import.meta.env.VITE_BASE_URL + imagePath;
+      if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) return imagePath;
+      if (imagePath.startsWith("/")) return import.meta.env.VITE_BASE_URL + imagePath;
       return imagePath;
     },
   },
 
   actions: {
-    // ───────────────────────────────────────────────
-    // Toast helper
-    // ───────────────────────────────────────────────
-    showToast(message, type = "success") {
-      this.toast = { show: true, message, type };
-      setTimeout(() => {
-        this.toast.show = false;
-      }, 3000);
+    // ============================================================
+    // CATEGORY ACTIONS
+    // ============================================================
+    async fetchCategories() {
+      this.categoryLoading = true;
+      try {
+        const response = await api.get("/categories");
+        const payload = response.data;
+        if (payload.result && payload.data) {
+          this.categories = payload.data;
+        }
+      } catch (err) {
+        this.handleError(err, "Failed to load categories");
+      } finally {
+        this.categoryLoading = false;
+      }
     },
 
-    // ───────────────────────────────────────────────
-    // Reset form to defaults
-    // ───────────────────────────────────────────────
-    resetForm() {
-      this.form = {
-        title: "",
-        description: "",
-        detail: "",
-        condition: "new",
-        story: "",
-        price: "",
-        image: null,
-        category_ids: [],
-        status: "active",
-      };
+    async createCategory() {
+      this.categorySaving = true;
+      try {
+        const formData = new FormData();
+        formData.append("name", this.categoryForm.name);
+        formData.append("description", this.categoryForm.description);
+        if (this.categoryForm.image) formData.append("image", this.categoryForm.image);
+
+        const response = await api.post("/categories", formData);
+        this.categories.push(response.data.data || response.data);
+        this.showToast("Category created successfully");
+        this.closeCategoryModal();
+        return true;
+      } catch (err) {
+        this.handleError(err, "Failed to create category");
+        return false;
+      } finally {
+        this.categorySaving = false;
+      }
     },
 
-    // ───────────────────────────────────────────────
-    // 1. FETCH PRODUCTS
-    //    GET /products?page=1&per_page=20&search=
-    // ───────────────────────────────────────────────
+    async updateCategory(id) {
+      if (!id) return false;
+      this.categorySaving = true;
+      try {
+        const formData = new FormData();
+        formData.append("_method", "PUT");
+        formData.append("name", this.categoryForm.name);
+        formData.append("description", this.categoryForm.description);
+        if (this.categoryForm.image) formData.append("image", this.categoryForm.image);
+
+        const response = await api.post(`/categories/${id}`, formData);
+        const idx = this.categories.findIndex((c) => c.id === id);
+        if (idx !== -1) this.categories[idx] = { ...this.categories[idx], ...(response.data.data || response.data) };
+        
+        this.showToast("Category updated successfully");
+        this.closeCategoryModal();
+        return true;
+      } catch (err) {
+        this.handleError(err, "Failed to update category");
+        return false;
+      } finally {
+        this.categorySaving = false;
+      }
+    },
+
+    async deleteCategory(id) {
+      this.categoryDeleting = true;
+      try {
+        await api.delete(`/categories/${id}`);
+        this.categories = this.categories.filter((c) => c.id !== id);
+        this.showToast("Category deleted successfully");
+        return true;
+      } catch (err) {
+        this.handleError(err, "Failed to delete category");
+        return false;
+      } finally {
+        this.categoryDeleting = false;
+      }
+    },
+
+    openCreateCategoryModal() { this.isCategoryEditMode = false; this.resetCategoryForm(); this.showCategoryModal = true; },
+    openEditCategoryModal(category) {
+      this.isCategoryEditMode = true;
+      this.categoryForm = { name: category.name || "", description: category.description || "", image: null };
+      this.showCategoryModal = true;
+    },
+    closeCategoryModal() { this.showCategoryModal = false; this.resetCategoryForm(); },
+    resetCategoryForm() { this.categoryForm = { name: "", description: "", image: null }; },
+
+    // ============================================================
+    // PRODUCT ACTIONS
+    // ============================================================
+
+    // 1. FETCH PAGINATED PRODUCTS
     async fetchProducts() {
       this.loading = true;
       try {
         const response = await api.get("/products", {
-          params: {
-            page: this.currentPage,
-            per_page: this.perPage,
-            search: this.searchQuery || undefined,
-          },
+          params: { page: this.currentPage, per_page: this.perPage, search: this.searchQuery || undefined },
         });
-
         const payload = response.data;
-
-        // Support multiple response shapes (Array vs Laravel Pagination Object)
-        if (Array.isArray(payload)) {
-          this.products = payload;
-          this.total = payload.length;
-          this.lastPage = 1;
-        } else if (payload.data && Array.isArray(payload.data)) {
+        if (payload.result && payload.data) {
           this.products = payload.data;
-          this.total = payload.total ?? payload.data.length;
-          this.lastPage = payload.last_page ?? 1;
-          this.currentPage = payload.current_page ?? this.currentPage;
+          const p = payload.paginate;
+          this.total = p.total;
+          this.lastPage = p.last_page;
+          this.currentPage = p.current_page;
         } else {
           this.products = [];
           this.total = 0;
-          this.lastPage = 1;
         }
       } catch (err) {
         this.handleError(err, "Failed to load products");
@@ -142,10 +185,38 @@ export const useProductsStore = defineStore("products", {
       }
     },
 
-    // ───────────────────────────────────────────────
-    // 2. CREATE PRODUCT
-    //    POST /products
-    // ───────────────────────────────────────────────
+    // 2. FETCH GRAND TOTAL VALUE (ALL Products)
+    async fetchTotalValue() {
+      try {
+        const response = await api.get("/products", { params: { per_page: 99999 } });
+        const payload = response.data;
+        if (payload.result && payload.data) {
+          this.totalValue = payload.data.reduce((sum, prod) => sum + (parseFloat(prod.price) || 0), 0);
+        }
+      } catch (err) {
+        console.error("Failed to calculate total value:", err);
+      }
+    },
+
+    // 3. GET DETAIL
+    async fetchProductDetail(id) {
+      this.detailLoading = true;
+      this.product = null;
+      try {
+        const response = await api.get(`/products/${id}`);
+        if (response.data.result) this.product = response.data.data;
+      } catch (err) {
+        this.handleError(err, "Failed to load product details");
+      } finally {
+        this.detailLoading = false;
+      }
+    },
+
+    // 4. SAVE PRODUCT (Create or Update)
+    saveProduct() {
+      return this.isEditMode ? this.updateProduct(this.selectedProductId) : this.createProduct();
+    },
+
     async createProduct() {
       this.saving = true;
       try {
@@ -156,28 +227,13 @@ export const useProductsStore = defineStore("products", {
         formData.append("condition", this.form.condition);
         formData.append("story", this.form.story);
         formData.append("price", this.form.price);
-        formData.append("status", this.form.status || "active");
+        if (this.form.image) formData.append("image", this.form.image);
+        if (this.form.category_ids?.length) this.form.category_ids.forEach((id) => formData.append("category_ids[]", id));
 
-        // Append image if exists
-        if (this.form.image) {
-          formData.append("image", this.form.image);
-        }
-
-        // Append category_ids as array (Laravel standard)
-        if (this.form.category_ids && this.form.category_ids.length > 0) {
-          this.form.category_ids.forEach((categoryId) => {
-            formData.append("category_ids[]", categoryId);
-          });
-        }
-
-        // Axios automatically sets correct headers for FormData (multipart/form-data)
         const response = await api.post("/products", formData);
-
-        const newProduct = response.data.data || response.data;
-        this.products.unshift(newProduct);
+        this.products.unshift(response.data.data || response.data);
         this.showToast("Product created successfully");
-        this.showFormModal = false;
-        this.resetForm();
+        this.closeFormModal();
         return true;
       } catch (err) {
         this.handleError(err, "Failed to create product");
@@ -187,58 +243,67 @@ export const useProductsStore = defineStore("products", {
       }
     },
 
-    // ───────────────────────────────────────────────
-    // 3. UPDATE PRODUCT
-    //    POST /products/{id} (Laravel method spoofing)
-    // ───────────────────────────────────────────────
-    async updateProduct() {
-      if (!this.selectedProduct) return false;
+    // async updateProduct(id) {
+    //   if (!id) return false;
+    //   this.saving = true;
+    //   try {
+    //     const formData = new FormData();
+    //     formData.append("_method", "PUT");
+    //     formData.append("title", this.form.title);
+    //     formData.append("description", this.form.description);
+    //     formData.append("detail", this.form.detail);
+    //     formData.append("condition", this.form.condition);
+    //     formData.append("story", this.form.story);
+    //     formData.append("price", this.form.price);
+    //     if (this.form.image) formData.append("image", this.form.image);
+    //     if (this.form.category_ids?.length) this.form.category_ids.forEach((catId) => formData.append("category_ids[]", catId));
 
+    //     const response = await api.post(`/products/${id}`, formData);
+    //     const idx = this.products.findIndex((p) => p.id === id);
+    //     if (idx !== -1) this.products[idx] = { ...this.products[idx], ...(response.data.data || response.data) };
+        
+    //     this.showToast("Product updated successfully");
+    //     this.closeFormModal();
+    //     return true;
+    //   } catch (err) {
+    //     this.handleError(err, "Failed to update product");
+    //     return false;
+    //   } finally {
+    //     this.saving = false;
+    //   }
+    // },
+
+    // =================================---------------------
+        // ───────────────────────────────────────────────
+    // 4. POST UPDATE /api/products/1
+    // ───────────────────────────────────────────────
+    async updateProduct(id) {
+      if (!id) return false;
       this.saving = true;
       try {
         const formData = new FormData();
-        formData.append("_method", "PUT"); // Laravel method spoofing
+        
+        // Note: NO _method spoofing needed since we use api.put
         formData.append("title", this.form.title);
         formData.append("description", this.form.description);
         formData.append("detail", this.form.detail);
         formData.append("condition", this.form.condition);
         formData.append("story", this.form.story);
         formData.append("price", this.form.price);
-        formData.append("status", this.form.status || "active");
+        
+        if (this.form.image) formData.append("image", this.form.image);
+        if (this.form.category_ids?.length) this.form.category_ids.forEach((catId) => formData.append("category_ids[]", catId));
 
-        // Append image if new one selected
-        if (this.form.image) {
-          formData.append("image", this.form.image);
-        }
-
-        // Append category_ids
-        if (this.form.category_ids && this.form.category_ids.length > 0) {
-          this.form.category_ids.forEach((categoryId) => {
-            formData.append("category_ids[]", categoryId);
-          });
-        }
-
-        // Axios automatically sets correct headers
-        const response = await api.post(
-          `/products/${this.selectedProduct.id}`,
-          formData,
-        );
-
-        // Update local state
-        const idx = this.products.findIndex(
-          (p) => p.id === this.selectedProduct.id,
-        );
+        // Use api.put for real PUT request
+        const response = await api.put(`/products/${id}`, formData);
+        
+        const idx = this.products.findIndex((p) => p.id === id);
         if (idx !== -1) {
-          this.products[idx] = {
-            ...this.products[idx],
-            ...(response.data.data || response.data),
-          };
+          this.products[idx] = { ...this.products[idx], ...(response.data.data || response.data) };
         }
-
+        
         this.showToast("Product updated successfully");
-        this.showFormModal = false;
-        this.resetForm();
-        this.selectedProduct = null;
+        this.closeFormModal();
         return true;
       } catch (err) {
         this.handleError(err, "Failed to update product");
@@ -247,11 +312,43 @@ export const useProductsStore = defineStore("products", {
         this.saving = false;
       }
     },
+    //     async updateCategory() {
+    //   if (!this.selectedCategory) return false;
+    //   this.saving = true;
+    //   try {
+    //     const formData = new FormData();
+        
+    //     // REMOVED: formData.append("_method", "PUT");
+        
+    //     formData.append("name", this.form.name);
+    //     formData.append("description", this.form.description);
+    //     formData.append("status", this.form.status);
+    //     if (this.form.parent_id) formData.append("parent_id", this.form.parent_id);
+    //     if (this.form.image) formData.append("image", this.form.image);
+    //     if (this.form.icon) formData.append("icon", this.form.icon);
 
-    // ───────────────────────────────────────────────
-    // 4. DELETE PRODUCT
-    //    DELETE /products/{id}
-    // ───────────────────────────────────────────────
+    //     // CHANGED: Use api.put instead of api.post
+    //     const response = await api.put(`/categories/${this.selectedCategory.id}`, formData);
+
+    //     const idx = this.categories.findIndex((c) => c.id === this.selectedCategory.id);
+    //     if (idx !== -1) {
+    //       this.categories[idx] = { ...this.categories[idx], ...(response.data.data || response.data) };
+    //     }
+
+    //     this.showToast("Category updated successfully");
+    //     this.showCategoryModal = false;
+    //     this.resetCategoryForm();
+    //     this.selectedCategory = null;
+    //     return true;
+    //   } catch (err) {
+    //     this.handleError(err, "Failed to update category");
+    //     return false;
+    //   } finally {
+    //     this.categorySaving = false;
+    //   }
+    // },
+    // =================================---------------------
+
     async deleteProduct(id) {
       this.deleting = true;
       try {
@@ -268,59 +365,13 @@ export const useProductsStore = defineStore("products", {
     },
 
     // ───────────────────────────────────────────────
-    // 5. UPLOAD PRODUCT IMAGE SEPARATELY (Optional)
-    //    POST /products/{id}/image
+    // HELPERS & MODALS
     // ───────────────────────────────────────────────
-    async uploadProductImage(productId, file) {
-      if (!file) return false;
-
-      this.uploadingImage = true;
-      try {
-        const formData = new FormData();
-        formData.append("image", file);
-
-        const response = await api.post(
-          `/products/${productId}/image`,
-          formData,
-        );
-
-        // Update local state
-        const idx = this.products.findIndex((p) => p.id === productId);
-        if (idx !== -1) {
-          const updated = response.data.data || response.data;
-          this.products[idx].image = updated.image;
-        }
-
-        this.showToast("Image uploaded successfully");
-        return true;
-      } catch (err) {
-        this.handleError(err, "Failed to upload image");
-        return false;
-      } finally {
-        this.uploadingImage = false;
-      }
-    },
-
-    // ───────────────────────────────────────────────
-    // Unified save (create or update)
-    // ───────────────────────────────────────────────
-    async saveProduct() {
-      return this.isEditMode ? this.updateProduct() : this.createProduct();
-    },
-
-    // ───────────────────────────────────────────────
-    // Modal helpers
-    // ───────────────────────────────────────────────
-    openCreateModal() {
-      this.isEditMode = false;
-      this.selectedProduct = null;
-      this.resetForm();
-      this.showFormModal = true;
-    },
-
+    openCreateModal() { this.isEditMode = false; this.selectedProductId = null; this.resetForm(); this.showFormModal = true; },
+    
     openEditModal(product) {
       this.isEditMode = true;
-      this.selectedProduct = { ...product };
+      this.selectedProductId = product.id; // Save ID for update
       this.form = {
         title: product.title || "",
         description: product.description || "",
@@ -328,53 +379,29 @@ export const useProductsStore = defineStore("products", {
         condition: product.condition || "new",
         story: product.story || "",
         price: product.price || "",
-        status: product.status || "active",
-        image: null, // Don't set existing image to avoid re-uploading
-        category_ids: product.category_ids || [],
+        image: null,
+        category_ids: product.categories ? product.categories.map((c) => c.id) : [],
       };
       this.showFormModal = true;
     },
 
-    closeFormModal() {
-      this.showFormModal = false;
-      this.selectedProduct = null;
-      this.resetForm();
-    },
+    closeFormModal() { this.showFormModal = false; this.selectedProductId = null; this.resetForm(); },
+    openDetailModal(product) { this.product = product; this.showDetailModal = true; },
+    closeDetailModal() { this.showDetailModal = false; this.product = null; },
 
-    // ───────────────────────────────────────────────
-    // Search & Pagination
-    // ───────────────────────────────────────────────
-    setSearchQuery(q) {
-      this.searchQuery = q;
+    resetForm() {
+      this.form = { title: "", description: "", detail: "", condition: "new", story: "", price: "", image: null, category_ids: [] };
     },
+    setSearchQuery(q) { this.searchQuery = q; },
+    setPage(page) { this.currentPage = page; this.fetchProducts(); },
 
-    setPage(page) {
-      if (page < 1 || page > this.lastPage) return;
-      this.currentPage = page;
-      this.fetchProducts();
+    showToast(message, type = "success") {
+      this.toast = { show: true, message, type };
+      setTimeout(() => (this.toast.show = false), 3000);
     },
-
-    // ───────────────────────────────────────────────
-    // Centralized error handler
-    // ───────────────────────────────────────────────
     handleError(err, fallbackMessage) {
-      const status = err.response?.status;
-      const message = err.response?.data?.message || fallbackMessage;
-
-      // Note: 401 errors are handled globally by the axios interceptor in api.js
-      if (status === 403) {
-        this.showToast("You don't have permission for this action.", "error");
-        return;
-      }
-
-      // 422 → Validation error
-      if (status === 422 && err.response?.data?.errors) {
-        const firstError = Object.values(err.response.data.errors)[0]?.[0];
-        this.showToast(firstError || message, "error");
-        return;
-      }
-
-      this.showToast(message, "error");
+      console.error(err);
+      this.showToast(err.response?.data?.message || fallbackMessage, "error");
     },
   },
 });
