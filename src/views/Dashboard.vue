@@ -7,10 +7,7 @@
         class="toast-notification"
         :class="`toast-${dashboardStore.toast.type}`"
       >
-        <i
-          :class="getToastIcon(dashboardStore.toast.type)"
-          class="me-2"
-        ></i>
+        <i :class="getToastIcon(dashboardStore.toast.type)" class="me-2"></i>
         {{ dashboardStore.toast.message }}
         <button
           class="btn-close btn-close-white ms-3"
@@ -235,7 +232,7 @@
               </router-link>
             </div>
 
-            <div class="p-3 flex-grow-1">
+            <div class="p-3 grow">
               <div
                 v-if="recentCategories.length === 0"
                 class="text-center py-5"
@@ -302,7 +299,7 @@
                 ></i>
               </button>
             </div>
-            <div class="p-3 flex-grow-1">
+            <div class="p-3 grow">
               <div
                 v-if="recentActivities.length === 0"
                 class="text-center py-5"
@@ -310,9 +307,7 @@
                 <div class="text-muted mb-2">
                   <i class="bi bi-activity fs-1"></i>
                 </div>
-                <span class="text-secondary fw-bold"
-                  >No recent activities</span
-                >
+                <span class="text-secondary fw-bold">No recent activities</span>
               </div>
               <div v-else class="activity-list">
                 <div
@@ -324,13 +319,13 @@
                   "
                 >
                   <div
-                    class="activity-icon rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                    class="activity-icon rounded-circle d-flex align-items-center justify-content-center shrink-0"
                     :class="getActivityIconClass(activity.type)"
                     style="width: 32px; height: 32px"
                   >
                     <i :class="getActivityIcon(activity.type)"></i>
                   </div>
-                  <div class="flex-grow-1">
+                  <div class="grow">
                     <div class="fw-semibold text-dark">
                       {{ activity.description }}
                     </div>
@@ -364,7 +359,7 @@
                 <option value="90days">Last 90 days</option>
               </select>
             </div>
-            <div class="p-3 flex-grow-1">
+            <div class="p-3 grow">
               <div class="row g-3">
                 <!-- Total Revenue -->
                 <div class="col-6">
@@ -677,7 +672,9 @@ const getActivityIconClass = (type) => {
     delete: "bg-danger bg-opacity-10 text-danger",
     create: "bg-success bg-opacity-10 text-success",
   };
-  return classes[type?.toLowerCase()] || "bg-secondary bg-opacity-10 text-secondary";
+  return (
+    classes[type?.toLowerCase()] || "bg-secondary bg-opacity-10 text-secondary"
+  );
 };
 
 const formatDate = (date) => {
