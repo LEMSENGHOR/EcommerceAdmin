@@ -18,52 +18,59 @@ export const useDeviceStore = defineStore("device", {
     // ── Search & Pagination ──
     searchQuery: "",
     currentPage: 1,
-    perPage: 20,
+    perPage: 6,
     total: 0,
     lastPage: 1,
 
-    // ── Toast (shared) ──
+    // ── Toast ──
     toast: { show: false, message: "", type: "success" },
   }),
 
   getters: {
+    // Updated to match your actual JSON fields (ip, location, device_name)
     filteredDevices: (state) => {
       if (!state.searchQuery) return state.devices;
       const q = state.searchQuery.toLowerCase();
       return state.devices.filter(
         (d) =>
-          (d.name || d.device_name || "").toLowerCase().includes(q) ||
-          (d.device_id || d.uuid || "").toLowerCase().includes(q) ||
-          (d.platform || d.os || "").toLowerCase().includes(q),
+          (d.device_name || "").toLowerCase().includes(q) ||
+          String(d.device_id || "")
+            .toLowerCase()
+            .includes(q) ||
+          (d.ip || "").toLowerCase().includes(q) ||
+          (d.location || "").toLowerCase().includes(q) ||
+          (d.browser || "").toLowerCase().includes(q),
       );
     },
 
     hasDevices: (state) => state.devices.length > 0,
-    activeCount: (state) =>
-      state.devices.filter((d) => (d.status || "active") === "active").length,
-    inactiveCount: (state) =>
-      state.devices.filter((d) => d.status === "inactive").length,
 
-    // Device by ID getter
-    getDeviceById: (state) => (id) => {
-      return state.devices.find((d) => d.id === id);
+    // Helper to format device type text
+    formattedDevices: (state) => {
+      return state.devices.map((d) => ({
+        ...d,
+        displayType:
+          d.device_type === 1
+            ? "Browser"
+            : d.device_type === 2
+              ? "Mobile"
+              : "Other",
+      }));
     },
   },
 
   actions: {
     // ───────────────────────────────────────────────
-    // Toast helper
+    // HELPERS
     // ───────────────────────────────────────────────
     showToast(message, type = "success") {
       this.toast = { show: true, message, type };
-      setTimeout(() => {
-        this.toast.show = false;
-      }, 3000);
+      setTimeout(() => (this.toast.show = false), 3000);
     },
 
     // ───────────────────────────────────────────────
     // 1. FETCH DEVICES
-    //    GET /profile/devices?page=1&per_page=20
+    //    GET /api/profile/devices?page=1&per_page=20
     // ───────────────────────────────────────────────
     async fetchDevices() {
       this.loading = true;
@@ -75,21 +82,24 @@ export const useDeviceStore = defineStore("device", {
           },
         });
 
-        // Support both paginated & non-paginated responses
         const payload = response.data;
-        if (Array.isArray(payload)) {
-          this.devices = payload;
-          this.total = payload.length;
-          this.lastPage = 1;
-        } else if (payload.data && Array.isArray(payload.data)) {
+
+        // Handle your specific JSON structure
+        if (payload.result && payload.data) {
           this.devices = payload.data;
-          this.total = payload.total ?? payload.data.length;
-          this.lastPage = payload.last_page ?? 1;
-          this.currentPage = payload.current_page ?? this.currentPage;
+
+          // FIX: Read pagination from the 'paginate' object
+          if (payload.paginate) {
+            this.total = payload.paginate.total;
+            this.lastPage = payload.paginate.last_page;
+            this.currentPage = payload.paginate.current_page;
+          } else {
+            this.total = payload.data.length;
+            this.lastPage = 1;
+          }
         } else {
           this.devices = [];
           this.total = 0;
-          this.lastPage = 1;
         }
       } catch (err) {
         this.handleError(err, "Failed to load devices");
@@ -99,15 +109,15 @@ export const useDeviceStore = defineStore("device", {
     },
 
     // ───────────────────────────────────────────────
-    // 2. UPDATE DEVICE
-    //    PUT /devices/:id
+    // 2. UPDATE DEVICE (Optional)
+    //    PUT /api/devices/:id
     // ───────────────────────────────────────────────
     async updateDevice(id, payload) {
       this.saving = true;
       try {
-        await api.put(`/devices/${id}`, payload);
+        const response = await api.put(`/devices/${id}`, payload);
 
-        // Update local state immediately (optimistic UI)
+        // Update local state optimistically
         const idx = this.devices.findIndex((d) => d.id === id);
         if (idx !== -1) {
           this.devices[idx] = { ...this.devices[idx], ...payload };
@@ -125,14 +135,17 @@ export const useDeviceStore = defineStore("device", {
     },
 
     // ───────────────────────────────────────────────
-    // 3. DELETE DEVICE (optional but useful for admin)
-    //    DELETE /devices/:id
+    // 3. DELETE DEVICE
+    //    DELETE /api/devices/1
     // ───────────────────────────────────────────────
     async deleteDevice(id) {
       this.deleting = true;
       try {
         await api.delete(`/devices/${id}`);
+
+        // Remove from local array
         this.devices = this.devices.filter((d) => d.id !== id);
+
         this.showToast("Device deleted successfully");
         return true;
       } catch (err) {
@@ -144,7 +157,7 @@ export const useDeviceStore = defineStore("device", {
     },
 
     // ───────────────────────────────────────────────
-    // Modal helpers
+    // MODAL HELPERS
     // ───────────────────────────────────────────────
     openEditModal(device) {
       this.selectedDevice = { ...device };
@@ -157,7 +170,7 @@ export const useDeviceStore = defineStore("device", {
     },
 
     // ───────────────────────────────────────────────
-    // Search & Pagination
+    // SEARCH & PAGINATION
     // ───────────────────────────────────────────────
     setSearchQuery(q) {
       this.searchQuery = q;
@@ -170,27 +183,40 @@ export const useDeviceStore = defineStore("device", {
     },
 
     // ───────────────────────────────────────────────
-    // Centralized error handler
+    // ERROR HANDLER (Matches your custom API format)
     // ───────────────────────────────────────────────
     handleError(err, fallbackMessage) {
       const status = err.response?.status;
-      const message = err.response?.data?.message || fallbackMessage;
+      const payload = err.response?.data;
 
-      // Note: 401 errors are handled by the axios interceptor
-      // This focuses on UI error feedback
+      if (status === 422) {
+        let errorMsg = null;
+
+        // 1. Standard Laravel: { errors: { name: ["..."] } }
+        if (payload?.errors) {
+          errorMsg = Object.values(payload.errors)[0]?.[0];
+        }
+        // 2. Your Custom API: { data: { name: ["..."] } }
+        else if (payload?.data && typeof payload.data === "object") {
+          const firstKey = Object.keys(payload.data)[0];
+          if (Array.isArray(payload.data[firstKey])) {
+            errorMsg = payload.data[firstKey][0];
+          }
+        }
+
+        this.showToast(
+          errorMsg || payload?.message || fallbackMessage,
+          "error",
+        );
+        return;
+      }
+
       if (status === 403) {
         this.showToast("You don't have permission for this action.", "error");
         return;
       }
 
-      // 422 → validation
-      if (status === 422 && err.response?.data?.errors) {
-        const firstError = Object.values(err.response.data.errors)[0]?.[0];
-        this.showToast(firstError || message, "error");
-        return;
-      }
-
-      this.showToast(message, "error");
+      this.showToast(payload?.message || fallbackMessage, "error");
     },
   },
 });

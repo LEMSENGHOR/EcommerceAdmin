@@ -61,8 +61,10 @@ export const useProductsStore = defineStore("products", {
   getters: {
     resolveProductImage: (state) => (imagePath) => {
       if (!imagePath) return null;
-      if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) return imagePath;
-      if (imagePath.startsWith("/")) return import.meta.env.VITE_BASE_URL + imagePath;
+      if (imagePath.startsWith("http://") || imagePath.startsWith("https://"))
+        return imagePath;
+      if (imagePath.startsWith("/"))
+        return import.meta.env.VITE_BASE_URL + imagePath;
       return imagePath;
     },
   },
@@ -92,7 +94,8 @@ export const useProductsStore = defineStore("products", {
         const formData = new FormData();
         formData.append("name", this.categoryForm.name);
         formData.append("description", this.categoryForm.description);
-        if (this.categoryForm.image) formData.append("image", this.categoryForm.image);
+        if (this.categoryForm.image)
+          formData.append("image", this.categoryForm.image);
 
         const response = await api.post("/categories", formData);
         this.categories.push(response.data.data || response.data);
@@ -115,12 +118,17 @@ export const useProductsStore = defineStore("products", {
         formData.append("_method", "PUT");
         formData.append("name", this.categoryForm.name);
         formData.append("description", this.categoryForm.description);
-        if (this.categoryForm.image) formData.append("image", this.categoryForm.image);
+        if (this.categoryForm.image)
+          formData.append("image", this.categoryForm.image);
 
         const response = await api.post(`/categories/${id}`, formData);
         const idx = this.categories.findIndex((c) => c.id === id);
-        if (idx !== -1) this.categories[idx] = { ...this.categories[idx], ...(response.data.data || response.data) };
-        
+        if (idx !== -1)
+          this.categories[idx] = {
+            ...this.categories[idx],
+            ...(response.data.data || response.data),
+          };
+
         this.showToast("Category updated successfully");
         this.closeCategoryModal();
         return true;
@@ -147,14 +155,27 @@ export const useProductsStore = defineStore("products", {
       }
     },
 
-    openCreateCategoryModal() { this.isCategoryEditMode = false; this.resetCategoryForm(); this.showCategoryModal = true; },
-    openEditCategoryModal(category) {
-      this.isCategoryEditMode = true;
-      this.categoryForm = { name: category.name || "", description: category.description || "", image: null };
+    openCreateCategoryModal() {
+      this.isCategoryEditMode = false;
+      this.resetCategoryForm();
       this.showCategoryModal = true;
     },
-    closeCategoryModal() { this.showCategoryModal = false; this.resetCategoryForm(); },
-    resetCategoryForm() { this.categoryForm = { name: "", description: "", image: null }; },
+    openEditCategoryModal(category) {
+      this.isCategoryEditMode = true;
+      this.categoryForm = {
+        name: category.name || "",
+        description: category.description || "",
+        image: null,
+      };
+      this.showCategoryModal = true;
+    },
+    closeCategoryModal() {
+      this.showCategoryModal = false;
+      this.resetCategoryForm();
+    },
+    resetCategoryForm() {
+      this.categoryForm = { name: "", description: "", image: null };
+    },
 
     // ============================================================
     // PRODUCT ACTIONS
@@ -165,7 +186,11 @@ export const useProductsStore = defineStore("products", {
       this.loading = true;
       try {
         const response = await api.get("/products", {
-          params: { page: this.currentPage, per_page: this.perPage, search: this.searchQuery || undefined },
+          params: {
+            page: this.currentPage,
+            per_page: this.perPage,
+            search: this.searchQuery || undefined,
+          },
         });
         const payload = response.data;
         if (payload.result && payload.data) {
@@ -188,10 +213,15 @@ export const useProductsStore = defineStore("products", {
     // 2. FETCH GRAND TOTAL VALUE (ALL Products)
     async fetchTotalValue() {
       try {
-        const response = await api.get("/products", { params: { per_page: 99999 } });
+        const response = await api.get("/products", {
+          params: { per_page: 99999 },
+        });
         const payload = response.data;
         if (payload.result && payload.data) {
-          this.totalValue = payload.data.reduce((sum, prod) => sum + (parseFloat(prod.price) || 0), 0);
+          this.totalValue = payload.data.reduce(
+            (sum, prod) => sum + (parseFloat(prod.price) || 0),
+            0,
+          );
         }
       } catch (err) {
         console.error("Failed to calculate total value:", err);
@@ -214,7 +244,9 @@ export const useProductsStore = defineStore("products", {
 
     // 4. SAVE PRODUCT (Create or Update)
     saveProduct() {
-      return this.isEditMode ? this.updateProduct(this.selectedProductId) : this.createProduct();
+      return this.isEditMode
+        ? this.updateProduct(this.selectedProductId)
+        : this.createProduct();
     },
 
     async createProduct() {
@@ -228,7 +260,10 @@ export const useProductsStore = defineStore("products", {
         formData.append("story", this.form.story);
         formData.append("price", this.form.price);
         if (this.form.image) formData.append("image", this.form.image);
-        if (this.form.category_ids?.length) this.form.category_ids.forEach((id) => formData.append("category_ids[]", id));
+        if (this.form.category_ids?.length)
+          this.form.category_ids.forEach((id) =>
+            formData.append("category_ids[]", id),
+          );
 
         const response = await api.post("/products", formData);
         this.products.unshift(response.data.data || response.data);
@@ -243,25 +278,40 @@ export const useProductsStore = defineStore("products", {
       }
     },
 
+    // =================================---------------------
+    // ───────────────────────────────────────────────
+    // 4. POST UPDATE /api/products/1
+    // ───────────────────────────────────────────────
     // async updateProduct(id) {
     //   if (!id) return false;
     //   this.saving = true;
     //   try {
     //     const formData = new FormData();
-    //     formData.append("_method", "PUT");
+
+    //     // Note: NO _method spoofing needed since we use api.put
     //     formData.append("title", this.form.title);
     //     formData.append("description", this.form.description);
     //     formData.append("detail", this.form.detail);
     //     formData.append("condition", this.form.condition);
     //     formData.append("story", this.form.story);
     //     formData.append("price", this.form.price);
-    //     if (this.form.image) formData.append("image", this.form.image);
-    //     if (this.form.category_ids?.length) this.form.category_ids.forEach((catId) => formData.append("category_ids[]", catId));
 
-    //     const response = await api.post(`/products/${id}`, formData);
+    //     if (this.form.image) formData.append("image", this.form.image);
+    //     if (this.form.category_ids?.length)
+    //       this.form.category_ids.forEach((catId) =>
+    //         formData.append("category_ids[]", catId),
+    //       );
+
+    //     // Use api.put for real PUT request
+    //     const response = await api.put(`/products/${id}`, formData);
     //     const idx = this.products.findIndex((p) => p.id === id);
-    //     if (idx !== -1) this.products[idx] = { ...this.products[idx], ...(response.data.data || response.data) };
-        
+    //     if (idx !== -1) {
+    //       this.products[idx] = {
+    //         ...this.products[idx],
+    //         ...(response.data.data || response.data),
+    //       };
+    //     }
+
     //     this.showToast("Product updated successfully");
     //     this.closeFormModal();
     //     return true;
@@ -273,35 +323,78 @@ export const useProductsStore = defineStore("products", {
     //   }
     // },
 
-    // =================================---------------------
-        // ───────────────────────────────────────────────
-    // 4. POST UPDATE /api/products/1
-    // ───────────────────────────────────────────────
+    // async updateProduct(id) {
+    //   if (!id) return false;
+    //   this.saving = true;
+    //   try {
+    //     const formData = new FormData();
+
+    //     formData.append("_method", "PUT"); // ← add this
+    //     formData.append("title", this.form.title);
+    //     formData.append("description", this.form.description);
+    //     formData.append("detail", this.form.detail);
+    //     formData.append("condition", this.form.condition);
+    //     formData.append("story", this.form.story);
+    //     formData.append("price", this.form.price);
+
+    //     if (this.form.image) formData.append("image", this.form.image);
+    //     if (this.form.category_ids?.length)
+    //       this.form.category_ids.forEach((catId) =>
+    //         formData.append("category_ids[]", catId),
+    //       );
+
+    //     const response = await api.post(`/products/${id}`, formData); // ← put → post
+
+    //     const idx = this.products.findIndex((p) => p.id === id);
+    //     if (idx !== -1) {
+    //       this.products[idx] = {
+    //         ...this.products[idx],
+    //         ...(response.data.data || response.data),
+    //       };
+    //     }
+
+    //     this.showToast("Product updated successfully");
+    //     this.closeFormModal();
+    //     return true;
+    //   } catch (err) {
+    //     this.handleError(err, "Failed to update product");
+    //     return false;
+    //   } finally {
+    //     this.saving = false;
+    //   }
+    // },
     async updateProduct(id) {
       if (!id) return false;
       this.saving = true;
       try {
         const formData = new FormData();
-        
-        // Note: NO _method spoofing needed since we use api.put
-        formData.append("title", this.form.title);
-        formData.append("description", this.form.description);
-        formData.append("detail", this.form.detail);
-        formData.append("condition", this.form.condition);
-        formData.append("story", this.form.story);
-        formData.append("price", this.form.price);
-        
-        if (this.form.image) formData.append("image", this.form.image);
-        if (this.form.category_ids?.length) this.form.category_ids.forEach((catId) => formData.append("category_ids[]", catId));
 
-        // Use api.put for real PUT request
-        const response = await api.put(`/products/${id}`, formData);
-        
+        formData.append("_method", "PUT");
+        formData.append("title", this.form.title);
+        formData.append("price", this.form.price);
+        formData.append("condition", this.form.condition);
+        formData.append("description", this.form.description);
+        formData.append("detail", this.form.detail || "");
+        formData.append("story", this.form.story || "");
+        formData.append(
+          "category_ids",
+          JSON.stringify([Number(this.form.category_ids[0])]),
+        ); // ← key fix
+        if (this.form.image instanceof File)
+          formData.append("image", this.form.image); // ← key fix
+
+        const response = await api.post(`/products/${id}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" }, // ← add
+        });
+
         const idx = this.products.findIndex((p) => p.id === id);
         if (idx !== -1) {
-          this.products[idx] = { ...this.products[idx], ...(response.data.data || response.data) };
+          this.products[idx] = {
+            ...this.products[idx],
+            ...(response.data.data || response.data),
+          };
         }
-        
+
         this.showToast("Product updated successfully");
         this.closeFormModal();
         return true;
@@ -312,42 +405,6 @@ export const useProductsStore = defineStore("products", {
         this.saving = false;
       }
     },
-    //     async updateCategory() {
-    //   if (!this.selectedCategory) return false;
-    //   this.saving = true;
-    //   try {
-    //     const formData = new FormData();
-        
-    //     // REMOVED: formData.append("_method", "PUT");
-        
-    //     formData.append("name", this.form.name);
-    //     formData.append("description", this.form.description);
-    //     formData.append("status", this.form.status);
-    //     if (this.form.parent_id) formData.append("parent_id", this.form.parent_id);
-    //     if (this.form.image) formData.append("image", this.form.image);
-    //     if (this.form.icon) formData.append("icon", this.form.icon);
-
-    //     // CHANGED: Use api.put instead of api.post
-    //     const response = await api.put(`/categories/${this.selectedCategory.id}`, formData);
-
-    //     const idx = this.categories.findIndex((c) => c.id === this.selectedCategory.id);
-    //     if (idx !== -1) {
-    //       this.categories[idx] = { ...this.categories[idx], ...(response.data.data || response.data) };
-    //     }
-
-    //     this.showToast("Category updated successfully");
-    //     this.showCategoryModal = false;
-    //     this.resetCategoryForm();
-    //     this.selectedCategory = null;
-    //     return true;
-    //   } catch (err) {
-    //     this.handleError(err, "Failed to update category");
-    //     return false;
-    //   } finally {
-    //     this.categorySaving = false;
-    //   }
-    // },
-    // =================================---------------------
 
     async deleteProduct(id) {
       this.deleting = true;
@@ -367,8 +424,13 @@ export const useProductsStore = defineStore("products", {
     // ───────────────────────────────────────────────
     // HELPERS & MODALS
     // ───────────────────────────────────────────────
-    openCreateModal() { this.isEditMode = false; this.selectedProductId = null; this.resetForm(); this.showFormModal = true; },
-    
+    openCreateModal() {
+      this.isEditMode = false;
+      this.selectedProductId = null;
+      this.resetForm();
+      this.showFormModal = true;
+    },
+
     openEditModal(product) {
       this.isEditMode = true;
       this.selectedProductId = product.id; // Save ID for update
@@ -380,20 +442,46 @@ export const useProductsStore = defineStore("products", {
         story: product.story || "",
         price: product.price || "",
         image: null,
-        category_ids: product.categories ? product.categories.map((c) => c.id) : [],
+        category_ids: product.categories
+          ? product.categories.map((c) => c.id)
+          : [],
       };
       this.showFormModal = true;
     },
 
-    closeFormModal() { this.showFormModal = false; this.selectedProductId = null; this.resetForm(); },
-    openDetailModal(product) { this.product = product; this.showDetailModal = true; },
-    closeDetailModal() { this.showDetailModal = false; this.product = null; },
+    closeFormModal() {
+      this.showFormModal = false;
+      this.selectedProductId = null;
+      this.resetForm();
+    },
+    openDetailModal(product) {
+      this.product = product;
+      this.showDetailModal = true;
+    },
+    closeDetailModal() {
+      this.showDetailModal = false;
+      this.product = null;
+    },
 
     resetForm() {
-      this.form = { title: "", description: "", detail: "", condition: "new", story: "", price: "", image: null, category_ids: [] };
+      this.form = {
+        title: "",
+        description: "",
+        detail: "",
+        condition: "new",
+        story: "",
+        price: "",
+        image: null,
+        category_ids: [],
+      };
     },
-    setSearchQuery(q) { this.searchQuery = q; },
-    setPage(page) { this.currentPage = page; this.fetchProducts(); },
+    setSearchQuery(q) {
+      this.searchQuery = q;
+    },
+    setPage(page) {
+      this.currentPage = page;
+      this.fetchProducts();
+    },
 
     showToast(message, type = "success") {
       this.toast = { show: true, message, type };
