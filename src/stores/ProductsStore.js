@@ -6,7 +6,7 @@ export const useProductsStore = defineStore("products", {
     // ── PRODUCT DATA ──
     products: [],
     product: null,
-    selectedProductId: null, // Track ID for editing
+    selectedProductId: null,
 
     // ── CATEGORY DATA ──
     categories: [],
@@ -52,7 +52,7 @@ export const useProductsStore = defineStore("products", {
     perPage: 8,
     total: 0,
     lastPage: 1,
-    totalValue: 0, // Grand total of ALL products
+    totalValue: 0,
 
     // ── Toast ──
     toast: { show: false, message: "", type: "success" },
@@ -65,13 +65,13 @@ export const useProductsStore = defineStore("products", {
         return imagePath;
       if (imagePath.startsWith("/"))
         return import.meta.env.VITE_BASE_URL + imagePath;
-      return imagePath;
+      return import.meta.env.VITE_BASE_URL + "/" + imagePath; // ⬅️ បន្ថែម "/" ក្នុងករណីដែលមិនមានសញ្ញា
     },
   },
 
   actions: {
     // ============================================================
-    // CATEGORY ACTIONS
+    // CATEGORY ACTIONS (គ្មានកំហុសទេ)
     // ============================================================
     async fetchCategories() {
       this.categoryLoading = true;
@@ -115,7 +115,7 @@ export const useProductsStore = defineStore("products", {
       this.categorySaving = true;
       try {
         const formData = new FormData();
-        formData.append("_method", "PUT");
+        formData.append("_method", "PUT"); // ⬅️ បន្ថែមថ្មីសម្រាប់ Laravel
         formData.append("name", this.categoryForm.name);
         formData.append("description", this.categoryForm.description);
         if (this.categoryForm.image)
@@ -195,10 +195,16 @@ export const useProductsStore = defineStore("products", {
         const payload = response.data;
         if (payload.result && payload.data) {
           this.products = payload.data;
-          const p = payload.paginate;
-          this.total = p.total;
-          this.lastPage = p.last_page;
-          this.currentPage = p.current_page;
+
+          // ⬅️ កែសម្រួល: ពិនិត្យមើលថាមាន paginate មែនទើបគណនា
+          if (payload.paginate) {
+            this.total = payload.paginate.total;
+            this.lastPage = payload.paginate.last_page;
+            this.currentPage = payload.paginate.current_page;
+          } else {
+            this.total = payload.data.length;
+            this.lastPage = 1;
+          }
         } else {
           this.products = [];
           this.total = 0;
@@ -210,7 +216,7 @@ export const useProductsStore = defineStore("products", {
       }
     },
 
-    // 2. FETCH GRAND TOTAL VALUE (ALL Products)
+    // 2. FETCH GRAND TOTAL VALUE
     async fetchTotalValue() {
       try {
         const response = await api.get("/products", {
@@ -260,10 +266,11 @@ export const useProductsStore = defineStore("products", {
         formData.append("story", this.form.story);
         formData.append("price", this.form.price);
         if (this.form.image) formData.append("image", this.form.image);
-        if (this.form.category_ids?.length)
+        if (this.form.category_ids?.length) {
           this.form.category_ids.forEach((id) =>
             formData.append("category_ids[]", id),
           );
+        }
 
         const response = await api.post("/products", formData);
         this.products.unshift(response.data.data || response.data);
@@ -278,114 +285,32 @@ export const useProductsStore = defineStore("products", {
       }
     },
 
-    // =================================---------------------
-    // ───────────────────────────────────────────────
-    // 4. POST UPDATE /api/products/1
-    // ───────────────────────────────────────────────
-    // async updateProduct(id) {
-    //   if (!id) return false;
-    //   this.saving = true;
-    //   try {
-    //     const formData = new FormData();
-
-    //     // Note: NO _method spoofing needed since we use api.put
-    //     formData.append("title", this.form.title);
-    //     formData.append("description", this.form.description);
-    //     formData.append("detail", this.form.detail);
-    //     formData.append("condition", this.form.condition);
-    //     formData.append("story", this.form.story);
-    //     formData.append("price", this.form.price);
-
-    //     if (this.form.image) formData.append("image", this.form.image);
-    //     if (this.form.category_ids?.length)
-    //       this.form.category_ids.forEach((catId) =>
-    //         formData.append("category_ids[]", catId),
-    //       );
-
-    //     // Use api.put for real PUT request
-    //     const response = await api.put(`/products/${id}`, formData);
-    //     const idx = this.products.findIndex((p) => p.id === id);
-    //     if (idx !== -1) {
-    //       this.products[idx] = {
-    //         ...this.products[idx],
-    //         ...(response.data.data || response.data),
-    //       };
-    //     }
-
-    //     this.showToast("Product updated successfully");
-    //     this.closeFormModal();
-    //     return true;
-    //   } catch (err) {
-    //     this.handleError(err, "Failed to update product");
-    //     return false;
-    //   } finally {
-    //     this.saving = false;
-    //   }
-    // },
-
-    // async updateProduct(id) {
-    //   if (!id) return false;
-    //   this.saving = true;
-    //   try {
-    //     const formData = new FormData();
-
-    //     formData.append("_method", "PUT"); // ← add this
-    //     formData.append("title", this.form.title);
-    //     formData.append("description", this.form.description);
-    //     formData.append("detail", this.form.detail);
-    //     formData.append("condition", this.form.condition);
-    //     formData.append("story", this.form.story);
-    //     formData.append("price", this.form.price);
-
-    //     if (this.form.image) formData.append("image", this.form.image);
-    //     if (this.form.category_ids?.length)
-    //       this.form.category_ids.forEach((catId) =>
-    //         formData.append("category_ids[]", catId),
-    //       );
-
-    //     const response = await api.post(`/products/${id}`, formData); // ← put → post
-
-    //     const idx = this.products.findIndex((p) => p.id === id);
-    //     if (idx !== -1) {
-    //       this.products[idx] = {
-    //         ...this.products[idx],
-    //         ...(response.data.data || response.data),
-    //       };
-    //     }
-
-    //     this.showToast("Product updated successfully");
-    //     this.closeFormModal();
-    //     return true;
-    //   } catch (err) {
-    //     this.handleError(err, "Failed to update product");
-    //     return false;
-    //   } finally {
-    //     this.saving = false;
-    //   }
-    // },
     async updateProduct(id) {
       if (!id) return false;
       this.saving = true;
       try {
         const formData = new FormData();
-
-        formData.append("_method", "PUT");
+        formData.append("_method", "PUT"); // ⬅️ បន្ថែមថ្មីសម្រាប់ Laravel Method Spoofing
         formData.append("title", this.form.title);
         formData.append("price", this.form.price);
         formData.append("condition", this.form.condition);
         formData.append("description", this.form.description);
         formData.append("detail", this.form.detail || "");
         formData.append("story", this.form.story || "");
-        formData.append(
-          "category_ids",
-          JSON.stringify([Number(this.form.category_ids[0])]),
-        ); // ← key fix
-        if (this.form.image instanceof File)
-          formData.append("image", this.form.image); // ← key fix
 
-        const response = await api.post(`/products/${id}`, formData, {
-          headers: { "Content-Type": "multipart/form-data" }, // ← add
-        });
+        // ⬅️ កែសម្រួល: ប្រើរបៀបដដែគ្នានឹង Create វិញ (មិនប្រើ JSON.stringify)
+        if (this.form.category_ids?.length) {
+          this.form.category_ids.forEach((catId) =>
+            formData.append("category_ids[]", catId),
+          );
+        }
+
+        if (this.form.image instanceof File) {
+          formData.append("image", this.form.image);
+        }
+
+        // ⬅️ កែសម្រួល: លុប headers ចេញពីទីនេះ អោយ Axios គ្រប់គ្រងវាដោយខ្លួនឯង
+        const response = await api.post(`/products/${id}`, formData);
 
         const idx = this.products.findIndex((p) => p.id === id);
         if (idx !== -1) {
@@ -397,6 +322,7 @@ export const useProductsStore = defineStore("products", {
 
         this.showToast("Product updated successfully");
         this.closeFormModal();
+        await this.fetchProducts(); // Refresh to get accurate pagination
         return true;
       } catch (err) {
         this.handleError(err, "Failed to update product");
@@ -422,7 +348,7 @@ export const useProductsStore = defineStore("products", {
     },
 
     // ───────────────────────────────────────────────
-    // HELPERS & MODALS
+    // HELPERS & MODALS (គ្មានកំហុសទេ)
     // ───────────────────────────────────────────────
     openCreateModal() {
       this.isEditMode = false;
@@ -430,10 +356,9 @@ export const useProductsStore = defineStore("products", {
       this.resetForm();
       this.showFormModal = true;
     },
-
     openEditModal(product) {
       this.isEditMode = true;
-      this.selectedProductId = product.id; // Save ID for update
+      this.selectedProductId = product.id;
       this.form = {
         title: product.title || "",
         description: product.description || "",
@@ -448,7 +373,6 @@ export const useProductsStore = defineStore("products", {
       };
       this.showFormModal = true;
     },
-
     closeFormModal() {
       this.showFormModal = false;
       this.selectedProductId = null;
@@ -462,7 +386,6 @@ export const useProductsStore = defineStore("products", {
       this.showDetailModal = false;
       this.product = null;
     },
-
     resetForm() {
       this.form = {
         title: "",
@@ -482,7 +405,6 @@ export const useProductsStore = defineStore("products", {
       this.currentPage = page;
       this.fetchProducts();
     },
-
     showToast(message, type = "success") {
       this.toast = { show: true, message, type };
       setTimeout(() => (this.toast.show = false), 3000);

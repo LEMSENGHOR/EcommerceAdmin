@@ -235,7 +235,7 @@
               </router-link>
             </div>
 
-            <div class="p-3 flex-grow-1">
+            <div class="p-3 grow">
               <div
                 v-if="recentCategories.length === 0"
                 class="text-center py-5"
@@ -302,7 +302,7 @@
                 ></i>
               </button>
             </div>
-            <div class="p-3 flex-grow-1">
+            <div class="p-3 grow">
               <div
                 v-if="recentActivities.length === 0"
                 class="text-center py-5"
@@ -324,13 +324,13 @@
                   "
                 >
                   <div
-                    class="activity-icon rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                    class="activity-icon rounded-circle d-flex align-items-center justify-content-center shrink-0"
                     :class="getActivityIconClass(activity.type)"
                     style="width: 32px; height: 32px"
                   >
                     <i :class="getActivityIcon(activity.type)"></i>
                   </div>
-                  <div class="flex-grow-1">
+                  <div class="grow">
                     <div class="fw-semibold text-dark">
                       {{ activity.description }}
                     </div>
@@ -364,7 +364,7 @@
                 <option value="90days">Last 90 days</option>
               </select>
             </div>
-            <div class="p-3 flex-grow-1">
+            <div class="p-3 grow">
               <div class="row g-3">
                 <!-- Total Revenue -->
                 <div class="col-6">

@@ -29,7 +29,12 @@
         </div>
         <div class="lh-1">
           <div class="d-flex mb-2 align-items-center">
-            <img class="me-2 rounded-1" src="../assets/images/1logo.png" alt="" style="max-width: 17%;">
+            <img
+              class="me-2 rounded-1"
+              src="../assets/images/1logo.png"
+              alt=""
+              style="max-width: 17%"
+            />
             <h5 class="m-0 fs-3">ពិភពទំនិញ</h5>
           </div>
 
@@ -136,8 +141,18 @@
           </router-link>
         </li>
 
-        <li>
+        <!-- <li>
           <a href="#" class="nav-link text-white" @click.prevent="handleLogout">
+            <i class="bi bi-box-arrow-right me-2"></i>
+            Logout
+          </a>
+        </li> -->
+        <li>
+          <a
+            href="#"
+            class="nav-link text-white"
+            @click.prevent="showModal = true"
+          >
             <i class="bi bi-box-arrow-right me-2"></i>
             Logout
           </a>
@@ -193,7 +208,45 @@
         </ul>
       </div>
     </aside>
+     <!-- Modal -->
+  <!-- <div v-if="showModal" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm Logout</h5>
+          <button type="button" class="btn-close" @click="showModal = false"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to logout?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="showModal = false">Cancel</button>
+          <button type="button" class="btn btn-danger" @click="handleLogout">Yes</button>
+        </div>
+      </div>
+    </div>
+  </div> -->
+  <!-- Modal -->
+<Transition name="modal">
+  <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+    <div class="modal-box">
+      <!-- Icon -->
+      <div class="modal-icon">
+        <i class="bi bi-box-arrow-right"></i>
+      </div>
 
+      <!-- Content -->
+      <h3 class="modal-title-custom">Logout</h3>
+      <p class="modal-text">Are you sure you want to logout?</p>
+
+      <!-- Buttons -->
+      <div class="modal-actions">
+        <button class="btn-cancel" @click="showModal = false">Cancel</button>
+        <button class="btn-logout" @click="handleLogout">Yes, Logout</button>
+      </div>
+    </div>
+  </div>
+</Transition>
     <!-- Main Content Area -->
     <div class="main-content d-flex flex-column">
       <!-- Top Header -->
@@ -326,18 +379,19 @@ const closeMobileSidebar = () => {
   isMobileOpen.value = false;
 };
 
+const showModal = ref(false);
+
 const handleLogout = async () => {
   try {
-    // Clear local storage
+    showModal.value = false;
+
     localStorage.removeItem("token");
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user");
 
-    // Redirect to login
     router.push("/login");
   } catch (error) {
     console.error("Logout error:", error);
-    // Force redirect even on error
     router.push("/login");
   }
 };
@@ -358,6 +412,108 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 24px;
+}
+
+.modal-title-custom {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 8px;
+}
+
+.modal-text {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 24px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.modal-actions button {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.btn-cancel:hover {
+  background: #e5e7eb;
+}
+
+.btn-logout {
+  background: #dc2626;
+  color: #fff;
+}
+
+.btn-logout:hover {
+  background: #b91c1c;
+}
+
+/* Transition */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.25s ease;
+}
+
+.modal-enter-active .modal-box,
+.modal-leave-active .modal-box {
+  transition: all 0.25s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .modal-box,
+.modal-leave-to .modal-box {
+  transform: scale(0.9) translateY(10px);
+  opacity: 0;
+}
 /* Layout Structure */
 .admin-layout {
   display: flex;

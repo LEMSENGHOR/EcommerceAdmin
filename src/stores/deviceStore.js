@@ -4,7 +4,7 @@ import api from "@/api/api.js";
 export const useDeviceStore = defineStore("device", {
   state: () => ({
     // ── Data ──
-    devices: [],
+    devices: [], // នឹងរក្សាទុកទិន្នន័យទាំងអស់ដែលទាញពី API
     selectedDevice: null,
 
     // ── UI Flags ──
@@ -18,25 +18,22 @@ export const useDeviceStore = defineStore("device", {
     // ── Search & Pagination ──
     searchQuery: "",
     currentPage: 1,
-    perPage: 6,
+    perPage: 6, // កំណត់ថាចង់បាន ៦ ជួរក្នុងមួយទំព័រ
     total: 0,
-    lastPage: 1,
+    // លុបចេញពីកន្លែងនេះ: lastPage: 1 
 
     // ── Toast ──
     toast: { show: false, message: "", type: "success" },
   }),
 
   getters: {
-    // Updated to match your actual JSON fields (ip, location, device_name)
     filteredDevices: (state) => {
       if (!state.searchQuery) return state.devices;
       const q = state.searchQuery.toLowerCase();
       return state.devices.filter(
         (d) =>
           (d.device_name || "").toLowerCase().includes(q) ||
-          String(d.device_id || "")
-            .toLowerCase()
-            .includes(q) ||
+          String(d.device_id || "").toLowerCase().includes(q) ||
           (d.ip || "").toLowerCase().includes(q) ||
           (d.location || "").toLowerCase().includes(q) ||
           (d.browser || "").toLowerCase().includes(q),
@@ -45,62 +42,49 @@ export const useDeviceStore = defineStore("device", {
 
     hasDevices: (state) => state.devices.length > 0,
 
-    // Helper to format device type text
     formattedDevices: (state) => {
       return state.devices.map((d) => ({
         ...d,
-        displayType:
-          d.device_type === 1
-            ? "Browser"
-            : d.device_type === 2
-              ? "Mobile"
-              : "Other",
+        displayType: d.device_type === 1 ? "Browser" : d.device_type === 2 ? "Mobile" : "Other",
       }));
+    },
+
+    // ⬅️ ថ្មី: គណនាចំនួនទំព័រសរុប
+    totalPages: (state) => {
+      return Math.ceil(state.filteredDevices.length / state.perPage) || 1;
+    },
+
+    // ⬅️ ថ្មី: កាត់ទិន្នន័យយកតែ ៦ របស់តាមទំព័របច្ចុប្បន្ន
+    paginatedDevices: (state) => {
+      const start = (state.currentPage - 1) * state.perPage;
+      const end = start + state.perPage;
+      return state.filteredDevices.slice(start, end);
     },
   },
 
   actions: {
-    // ───────────────────────────────────────────────
-    // HELPERS
-    // ───────────────────────────────────────────────
     showToast(message, type = "success") {
       this.toast = { show: true, message, type };
       setTimeout(() => (this.toast.show = false), 3000);
     },
 
-    // ───────────────────────────────────────────────
-    // 1. FETCH DEVICES
-    //    GET /api/profile/devices?page=1&per_page=20
-    // ───────────────────────────────────────────────
+    // ⬅️ កែសម្រួល: ទាញទិន្នន័យសរុបមកទាំងអស់ មិនបញ្ជូន page/per_page ទៅកាន់ Backend ទេ
     async fetchDevices() {
       this.loading = true;
       try {
-        const response = await api.get("/profile/devices", {
-          params: {
-            page: this.currentPage,
-            per_page: this.perPage,
-          },
-        });
-
+        const response = await api.get("/profile/devices"); // លុប params ចេញ
         const payload = response.data;
 
-        // Handle your specific JSON structure
         if (payload.result && payload.data) {
-          this.devices = payload.data;
-
-          // FIX: Read pagination from the 'paginate' object
-          if (payload.paginate) {
-            this.total = payload.paginate.total;
-            this.lastPage = payload.paginate.last_page;
-            this.currentPage = payload.paginate.current_page;
-          } else {
-            this.total = payload.data.length;
-            this.lastPage = 1;
-          }
+          this.devices = Array.isArray(payload.data) ? payload.data : [];
+        } else if (Array.isArray(payload)) {
+          this.devices = payload;
         } else {
           this.devices = [];
-          this.total = 0;
         }
+        
+        // កំណត់ Total ដោយផ្អែកលើទិន្នន័យដែលទាញមកពិតប្រាកដ
+        this.total = this.devices.length;
       } catch (err) {
         this.handleError(err, "Failed to load devices");
       } finally {
@@ -108,21 +92,14 @@ export const useDeviceStore = defineStore("device", {
       }
     },
 
-    // ───────────────────────────────────────────────
-    // 2. UPDATE DEVICE (Optional)
-    //    PUT /api/devices/:id
-    // ───────────────────────────────────────────────
     async updateDevice(id, payload) {
       this.saving = true;
       try {
         const response = await api.put(`/devices/${id}`, payload);
-
-        // Update local state optimistically
         const idx = this.devices.findIndex((d) => d.id === id);
         if (idx !== -1) {
           this.devices[idx] = { ...this.devices[idx], ...payload };
         }
-
         this.showToast("Device updated successfully");
         this.showFormModal = false;
         return true;
@@ -134,17 +111,17 @@ export const useDeviceStore = defineStore("device", {
       }
     },
 
-    // ───────────────────────────────────────────────
-    // 3. DELETE DEVICE
-    //    DELETE /api/devices/1
-    // ───────────────────────────────────────────────
+    // ⬅️ កែសម្រួល: បន្ថែមការពិនិត្យថាកុំឲ្យទំព័រនៅឃើញចុងក្រោមមិនមានអ្វីបន្ទាប់ពីលុប
     async deleteDevice(id) {
       this.deleting = true;
       try {
         await api.delete(`/devices/${id}`);
-
-        // Remove from local array
         this.devices = this.devices.filter((d) => d.id !== id);
+        
+        // បើលុបហើយ ទំព័រចុងក្រោមទម្លាក់ទៅលើទំព័រមុន វានឹងត្រលប់ទៅទំព័រមុនដោយស្វ័យប្រវត្តិ
+        if (this.currentPage > this.totalPages) {
+          this.currentPage = this.totalPages;
+        }
 
         this.showToast("Device deleted successfully");
         return true;
@@ -156,9 +133,6 @@ export const useDeviceStore = defineStore("device", {
       }
     },
 
-    // ───────────────────────────────────────────────
-    // MODAL HELPERS
-    // ───────────────────────────────────────────────
     openEditModal(device) {
       this.selectedDevice = { ...device };
       this.showFormModal = true;
@@ -169,54 +143,33 @@ export const useDeviceStore = defineStore("device", {
       this.selectedDevice = null;
     },
 
-    // ───────────────────────────────────────────────
-    // SEARCH & PAGINATION
-    // ───────────────────────────────────────────────
-    setSearchQuery(q) {
-      this.searchQuery = q;
-    },
+    // ⬅️ លុបចោល setPage ដែលទាក់ទងនឹង API ចេញពីទីនេះ
+  },
 
-    setPage(page) {
-      if (page < 1 || page > this.lastPage) return;
-      this.currentPage = page;
-      this.fetchDevices();
-    },
+  // handleError នៅតែដដែគ្មានការផ្លាស់ប្តូរ
+  handleError(err, fallbackMessage) {
+    const status = err.response?.status;
+    const payload = err.response?.data;
 
-    // ───────────────────────────────────────────────
-    // ERROR HANDLER (Matches your custom API format)
-    // ───────────────────────────────────────────────
-    handleError(err, fallbackMessage) {
-      const status = err.response?.status;
-      const payload = err.response?.data;
-
-      if (status === 422) {
-        let errorMsg = null;
-
-        // 1. Standard Laravel: { errors: { name: ["..."] } }
-        if (payload?.errors) {
-          errorMsg = Object.values(payload.errors)[0]?.[0];
+    if (status === 422) {
+      let errorMsg = null;
+      if (payload?.errors) {
+        errorMsg = Object.values(payload.errors)[0]?.[0];
+      } else if (payload?.data && typeof payload.data === "object") {
+        const firstKey = Object.keys(payload.data)[0];
+        if (Array.isArray(payload.data[firstKey])) {
+          errorMsg = payload.data[firstKey][0];
         }
-        // 2. Your Custom API: { data: { name: ["..."] } }
-        else if (payload?.data && typeof payload.data === "object") {
-          const firstKey = Object.keys(payload.data)[0];
-          if (Array.isArray(payload.data[firstKey])) {
-            errorMsg = payload.data[firstKey][0];
-          }
-        }
-
-        this.showToast(
-          errorMsg || payload?.message || fallbackMessage,
-          "error",
-        );
-        return;
       }
+      this.showToast(errorMsg || payload?.message || fallbackMessage, "error");
+      return;
+    }
 
-      if (status === 403) {
-        this.showToast("You don't have permission for this action.", "error");
-        return;
-      }
+    if (status === 403) {
+      this.showToast("You don't have permission for this action.", "error");
+      return;
+    }
 
-      this.showToast(payload?.message || fallbackMessage, "error");
-    },
+    this.showToast(payload?.message || fallbackMessage, "error");
   },
 });

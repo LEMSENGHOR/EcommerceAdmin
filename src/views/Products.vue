@@ -612,7 +612,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted,watch } from "vue";
 import { useProductsStore } from "../stores/ProductsStore"; // Adjust path if needed
 import AdminLayout from "@/layouts/AdminLayout.vue";
 
@@ -624,11 +624,25 @@ const imagePreview = ref(null);
 const showDeleteModal = ref(false);
 const deleteId = ref(null);
 
+
+
 // Computed: Grand Total Value from Store
 const totalValue = computed(() => {
   return (productsStore.totalValue || 0).toFixed(2);
 });
 
+watch(
+  () => productsStore.showFormModal,
+  (isOpen) => {
+    if (isOpen && productsStore.isEditMode) {
+      selectedCategoryId.value = productsStore.form.category_ids[0] ?? null;
+      imagePreview.value = null;
+    } else if (!isOpen) {
+      selectedCategoryId.value = null;
+      imagePreview.value = null;
+    }
+  }
+);
 // Computed: Show exactly 8 pages
 const visiblePages = computed(() => {
   const total = productsStore.lastPage;
@@ -693,6 +707,18 @@ const confirmDelete = async () => {
   if (success) closeDeleteModal();
 };
 
+// const handleSave = async () => {
+//   productsStore.form.category_ids = selectedCategoryId.value
+//     ? [selectedCategoryId.value]
+//     : [];
+//   const success = await productsStore.saveProduct();
+//   if (success) {
+//     imagePreview.value = null;
+//     await productsStore.fetchTotalValue(); // Refresh total value after save
+//   }
+// };
+
+// Replace your handleSave
 const handleSave = async () => {
   productsStore.form.category_ids = selectedCategoryId.value
     ? [selectedCategoryId.value]
@@ -700,7 +726,8 @@ const handleSave = async () => {
   const success = await productsStore.saveProduct();
   if (success) {
     imagePreview.value = null;
-    await productsStore.fetchTotalValue(); // Refresh total value after save
+    selectedCategoryId.value = null; // ← reset after save
+    await productsStore.fetchTotalValue();
   }
 };
 
