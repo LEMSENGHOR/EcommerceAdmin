@@ -1,5 +1,5 @@
 <template>
-  <AdminLayout pageTitle="Devices">
+  <AdminLayout pageTitle="ឧបករណ៍">
     <div class="devices-page">
       <!-- Stats Cards -->
       <div class="row g-4 mb-4">
@@ -100,9 +100,9 @@
             </template>
 
             <template #cell(actions)="{ row }">
-              <div class="d-flex justify-content-end gap-1">
+              <div class="d-flex justify-content-center gap-1">
                 <button class="btn btn-sm btn-outline-secondary border-0 rounded-2 btn-action-icon" @click="openViewModal(row)" title="View"><i class="bi bi-eye"></i></button>
-                <button class="btn btn-sm btn-outline-danger border-0 rounded-2 btn-action-icon" @click="confirmDelete(row)" title="Delete" :disabled="store.deleting"><i class="bi bi-trash"></i></button>
+                <!-- <button class="btn btn-sm btn-outline-danger border-0 rounded-2 btn-action-icon" @click="confirmDelete(row)" title="Delete" :disabled="store.deleting"><i class="bi bi-trash"></i></button> -->
               </div>
             </template>
           </BaseTable>
@@ -181,7 +181,7 @@ const tableColumns = [
   { key: "ip", label: "IP Address" },
   { key: "location", label: "Location" },
   { key: "type", label: "Type", align: "center" },
-  { key: "actions", label: "Actions", align: "end" },
+  { key: "actions", label: "Actions", align: "center" },
 ];
 
 // State

@@ -1,5 +1,5 @@
 <template>
-  <AdminLayout pageTitle="ប្រភេទ">
+  <AdminLayout pageTitle="ប្រភេទផលិតផល">
     <div class="categories-page">
       <!-- Stats Cards -->
       <div class="row g-4 mb-4">
