@@ -1,5 +1,5 @@
 <template>
-  <AdminLayout pageTitle="Payments">
+  <AdminLayout pageTitle="ការទូទាត់">
     <div class="payments-page">
       <!-- Stats Cards -->
       <div class="row g-4 mb-4">

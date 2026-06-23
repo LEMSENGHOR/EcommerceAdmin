@@ -30,13 +30,17 @@
       </div>
 
       <!-- Error Alert -->
-      <div
+      <!-- <div
         v-if="error"
         class="alert alert-danger d-flex align-items-center mb-3"
         role="alert"
       >
         <i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>
         <div>{{ error }}</div>
+      </div> -->
+      <!-- Error Alert — use store error -->
+      <div v-if="authStore.error" class="alert alert-danger ...">
+        {{ authStore.error }}
       </div>
 
       <!-- Login Form -->
@@ -76,12 +80,21 @@
           </button>
         </div>
 
-        <button
+        <!-- <button
           type="submit"
           class="btn btn-primary w-100 py-3 fw-semibold rounded-3"
           :disabled="loading"
         >
           <span v-if="!loading">Sign In</span>
+          <span v-else>
+            <span class="spinner-border spinner-border-sm me-2"></span> Signing
+            in...
+          </span>
+        </button> -->
+
+        <!-- Button — use store loading -->
+        <button class="btn btn-primary w-100 py-3 fw-semibold rotate-3" type="submit" :disabled="authStore.loading">
+          <span v-if="!authStore.loading">Login</span>
           <span v-else>
             <span class="spinner-border spinner-border-sm me-2"></span> Signing
             in...
@@ -94,12 +107,9 @@
 
 <script setup>
 import { ref, reactive } from "vue";
-import { useRouter } from "vue-router";
-import api from "@/api/api.js";
+import { useAuthStore } from "../stores/Authstore ";
 
-const router = useRouter();
-const loading = ref(false);
-const error = ref("");
+const authStore = useAuthStore();
 const showPassword = ref(false);
 
 const form = reactive({
@@ -108,60 +118,8 @@ const form = reactive({
 });
 
 const handleLogin = async () => {
-  loading.value = true;
-  error.value = "";
-  
-  try {
-    // 1. Send request
-    const response = await api.post("/login", {
-      email: form.email,
-      password: form.password,
-    });
-
-    // 2. Handle Response Data
-    // Assuming API structure: { result: true, data: { token: "...", user: {...} } }
-    const data = response.data;
-    
-    // Check if the structure matches what you expect
-    if (data.result && data.data?.token) {
-      const { token, ...user } = data.data;
-
-      // 3. Save to LocalStorage
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      // 4. Redirect
-      router.push("/");
-    } else {
-      // Fallback for different structures (just in case)
-      const token = data.token || data.access_token || data.data?.token;
-      const user = data.user || data.data?.user || data.data;
-      
-      if (token) {
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
-        router.push("/");
-      } else {
-        throw new Error("Token not found in response");
-      }
-    }
-  } catch (err) {
-    console.error("Login Error:", err);
-    
-    // 5. Error Handling
-    // Check for specific message from backend or use generic message
-    if (err.response?.data?.message) {
-      error.value = err.response.data.message;
-    } else if (err.response?.data?.error) {
-      error.value = err.response.data.error;
-    } else if (err.message === "Token not found in response") {
-      error.value = "Server response format error. Contact admin.";
-    } else {
-      error.value = "Network error. Please check your connection.";
-    }
-  } finally {
-    loading.value = false;
-  }
+  authStore.clearError();
+  await authStore.login(form.email, form.password);
 };
 </script>
 

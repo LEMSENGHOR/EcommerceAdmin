@@ -1,5 +1,5 @@
 <template>
-  <AdminLayout pageTitle="Devices">
+  <AdminLayout pageTitle="ឧបករណ៍">
     <div class="devices-page">
       <!-- Stats Cards -->
       <div class="row g-4 mb-4">
@@ -50,82 +50,62 @@
       </div>
 
       <!-- Main Content Card -->
-      <div class="data-card bg-white border rounded-3 shadow-sm p-4">
+      <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
         <!-- Header -->
-        <div class="card-header-custom d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-          <div class="d-flex align-items-center gap-3 flex-wrap grow">
-            <h6 class="m-0 fw-bold">Registered Devices</h6>
-            <div class="position-relative grow" style="max-width: 300px;">
-              <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary small"></i>
-              <!-- FIXED: Changed :value to v-model to allow typing -->
-              <input type="text" class="form-control ps-5" style="border-radius: 8px;" placeholder="Search by IP or Location..." v-model="store.searchQuery" @input="handleSearch" />
-            </div>
+        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-3 bg-white p-3 border-bottom">
+          <div class="position-relative" style="max-width: 300px">
+            <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary small"></i>
+            <input type="text" class="form-control ps-5" style="border-radius: 8px;" placeholder="Search by IP or Location..." v-model="store.searchQuery" @input="handleSearch" />
           </div>
-          
           <button class="btn btn-outline-secondary fw-semibold rounded-2 d-flex align-items-center gap-2" @click="refreshData" :disabled="store.loading">
-            <i class="bi bi-arrow-clockwise" :class="{ 'spin-animation': store.loading }"></i>
+            <i class="bi bi-arrow-clockwise" :class="{ 'spin-animation': store.loading }"></i> Refresh
           </button>
         </div>
 
-        <!-- Table -->
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead class="bg-light">
-              <tr>
-                <th class="small text-uppercase text-secondary fw-bold">Device</th>
-                <th class="small text-uppercase text-secondary fw-bold">IP Address</th>
-                <th class="small text-uppercase text-secondary fw-bold">Location</th>
-                <th class="small text-uppercase text-secondary fw-bold text-center">Type</th>
-                <th class="small text-uppercase text-secondary fw-bold text-end">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="store.loading">
-                <td colspan="5" class="text-center text-secondary py-5"><div class="spinner-border spinner-border-sm me-2"></div> Loading devices...</td>
-              </tr>
-              <tr v-else-if="!store.filteredDevices.length">
-                <td colspan="5" class="text-center text-secondary py-5">
-                  <div class="text-muted mb-2"><i class="bi bi-display fs-1"></i></div>
-                  <span class="text-secondary fw-bold">No devices found</span>
-                </td>
-              </tr>
-              <tr v-else v-for="device in store.filteredDevices" :key="device.id">
-                <td>
-                  <div class="d-flex align-items-center gap-3">
-                    <div class="device-icon-box bg-light text-secondary rounded-2 d-flex align-items-center justify-content-center">
-                      <i :class="getDeviceTypeIcon(device.device_type)"></i>
-                    </div>
-                    <div>
-                      <div class="fw-semibold text-dark">{{ device.device_name || 'Unknown Device' }}</div>
-                      <div class="text-muted small">{{ device.browser }}</div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <code class="bg-light text-dark border rounded px-2 py-1 small">{{ device.ip || '—' }}</code>
-                </td>
-                <td class="text-secondary small">{{ device.location || '—' }}</td>
-                <td class="text-center">
-                  <span class="badge bg-primary bg-opacity-10 text-primary">{{ getDeviceTypeText(device.device_type) }}</span>
-                </td>
-                <td class="text-end">
-                  <div class="d-flex justify-content-end gap-1">
-                    <button class="btn btn-sm btn-outline-secondary border-0 rounded-2 btn-action-icon" @click="openViewModal(device)" title="View"><i class="bi bi-eye"></i></button>
-                    <button class="btn btn-sm btn-outline-danger border-0 rounded-2 btn-action-icon" @click="confirmDelete(device)" title="Delete" :disabled="store.deleting"><i class="bi bi-trash"></i></button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <!-- ⬅️⬅️⬅️ ប្រើ BaseTable ដូចគ្នានឹង Category ⬅️⬅️⬅️ -->
+        <div class="p-3">
+          <BaseTable 
+            :columns="tableColumns" 
+            :rows="store.paginatedDevices" 
+            :loading="store.loading" 
+            emptyMessage="No devices found"
+            :currentPage="store.currentPage"
+            :lastPage="store.totalPages"
+            :totalItems="store.filteredDevices.length"
+            :perPage="store.perPage"
+            @change-page="handlePageChange"
+          >
+            <template #cell(device)="{ row }">
+              <div class="d-flex align-items-center gap-3">
+                <div class="device-icon-box bg-light text-secondary rounded-2 d-flex align-items-center justify-content-center">
+                  <i :class="getDeviceTypeIcon(row.device_type)"></i>
+                </div>
+                <div>
+                  <div class="fw-semibold text-dark">{{ row.device_name || 'Unknown Device' }}</div>
+                  <div class="text-muted small">{{ row.browser }}</div>
+                </div>
+              </div>
+            </template>
 
-        <!-- Pagination -->
-        <div v-if="store.lastPage > 1" class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-          <small class="text-secondary">Page {{ store.currentPage }} of {{ store.lastPage }} · {{ store.total }} devices</small>
-          <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-light rounded-2" :disabled="store.currentPage === 1" @click="store.setPage(store.currentPage - 1)"><i class="bi bi-chevron-left"></i></button>
-            <button class="btn btn-sm btn-light rounded-2" :disabled="store.currentPage === store.lastPage" @click="store.setPage(store.currentPage + 1)"><i class="bi bi-chevron-right"></i></button>
-          </div>
+            <template #cell(ip)="{ value }">
+              <code class="bg-light text-dark border rounded px-2 py-1 small">{{ value || '—' }}</code>
+            </template>
+
+            <template #cell(location)="{ value }">
+              <span class="text-secondary small">{{ value || '—' }}</span>
+            </template>
+
+            <template #cell(type)="{ row }">
+              <span class="badge bg-primary bg-opacity-10 text-primary">{{ getDeviceTypeText(row.device_type) }}</span>
+            </template>
+
+            <template #cell(actions)="{ row }">
+              <div class="d-flex justify-content-center gap-1">
+                <button class="btn btn-sm btn-outline-secondary border-0 rounded-2 btn-action-icon" @click="openViewModal(row)" title="View"><i class="bi bi-eye"></i></button>
+                <!-- <button class="btn btn-sm btn-outline-danger border-0 rounded-2 btn-action-icon" @click="confirmDelete(row)" title="Delete" :disabled="store.deleting"><i class="bi bi-trash"></i></button> -->
+              </div>
+            </template>
+          </BaseTable>
         </div>
       </div>
     </div>
@@ -189,27 +169,31 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-// Ensure correct casing matching your file
 import { useDeviceStore } from "../stores/deviceStore"; 
 import AdminLayout from "@/layouts/AdminLayout.vue";
+import BaseTable from "@/components/BaseTable.vue"; // ⬅️ Import BaseTable
 
 const store = useDeviceStore();
+
+// ⬅️ កំណត់ជួរៈទាំងឡាយណាដែលត្រូវបង្ហាញនៅលើតារាង
+const tableColumns = [
+  { key: "device", label: "Device" },
+  { key: "ip", label: "IP Address" },
+  { key: "location", label: "Location" },
+  { key: "type", label: "Type", align: "center" },
+  { key: "actions", label: "Actions", align: "center" },
+];
 
 // State
 const showViewModal = ref(false);
 const viewingDevice = ref(null);
 const deleteTarget = ref(null);
 
-// Computed (Calculating locally since your JSON doesn't have these fields)
-const mobileCount = computed(() => {
-  return store.devices.filter(d => d.device_type === 2).length;
-});
+// Computed
+const mobileCount = computed(() => store.devices.filter(d => d.device_type === 2).length);
+const desktopCount = computed(() => store.devices.filter(d => d.device_type === 1 || d.device_type === 3).length);
 
-const desktopCount = computed(() => {
-  return store.devices.filter(d => d.device_type === 1 || d.device_type === 3).length;
-});
-
-// Methods adapted for your exact JSON fields
+// Methods
 const getDeviceTypeText = (type) => {
   if (type === 1) return "Browser";
   if (type === 2) return "Mobile";
@@ -222,8 +206,14 @@ const getDeviceTypeIcon = (type) => {
   return "bi-display text-secondary";
 };
 
+// ⬅️ ដូចគ្នានឹង Category
+const handlePageChange = (page) => {
+  store.currentPage = page;
+};
+
 const handleSearch = () => {
-  store.fetchDevices(); // store.searchQuery is automatically updated by v-model
+  store.currentPage = 1; // ស្វែងរកថ្មីត្រូវត្រលប់ទៅទំព័រ ១
+  store.fetchDevices();
 };
 
 const refreshData = async () => {
@@ -259,13 +249,12 @@ onMounted(() => store.fetchDevices());
 .devices-page { animation: fadeIn 0.3s ease-in-out; }
 .stat-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .stat-card:hover { transform: translateY(-3px); box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important; }
-.data-card { transition: box-shadow 0.2s ease; }
-.data-card:hover { box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1) !important; }
-.device-icon-box { width: 40px; height: 40px; font-size: 18px; }
+.device-icon-box { width: 40px; height: 40px; font-size: 18px; flex-shrink: 0; }
+.device-icon-large { transition: transform 0.2s ease; }
+.device-icon-large:hover { transform: scale(1.05); }
 .btn-action-icon { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; transition: transform 0.2s ease; }
 .btn-action-icon:hover { transform: scale(1.1); }
 
-/* Added Modal Scroll Styles */
 .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1055; backdrop-filter:blur(2px); display:flex; align-items:center; justify-content:center; padding:1rem; animation: fadeIn 0.2s ease; }
 .modal-custom { width:100%; max-width:500px; background:white; border-radius:1rem; box-shadow:0 0.5rem 1rem rgba(0,0,0,0.15); display:flex; flex-direction:column; max-height:90vh; animation: slideUp 0.3s ease;}
 .modal-header-custom { flex-shrink:0; position:sticky; top:0; z-index:10; background:white; padding:1rem; border-bottom:1px solid #dee2e6; border-top-left-radius:1rem; border-top-right-radius:1rem; display:flex; justify-content:space-between; align-items:center;}

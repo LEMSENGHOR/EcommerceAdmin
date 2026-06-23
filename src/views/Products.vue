@@ -1,5 +1,5 @@
 <template>
-  <AdminLayout pageTitle="Products">
+  <AdminLayout pageTitle="ផលិតផល">
     <div class="products-page">
       <!-- Stats Cards -->
       <div class="row g-4 mb-4">
@@ -33,8 +33,9 @@
                 <i class="bi bi-check-circle fs-5"></i>
               </div>
               <div>
+                <!-- ⬅️ កែពី products.length ទៅជា total ដើម្បីបង្ហាញចំនួនសរុបពិតោវាគ្មានបានកែទំព័រទេ -->
                 <div class="stat-value fs-4 fw-bold">
-                  {{ productsStore.products.length }}
+                  {{ productsStore.total }}
                 </div>
                 <div class="stat-label small text-secondary">Listed Items</div>
               </div>
@@ -69,7 +70,8 @@
                 <i class="bi bi-currency-dollar fs-5"></i>
               </div>
               <div>
-                <div class="stat-value fs-4 fw-bold">${{ totalValue }}</div>
+                <!-- ⬅️ កែពី ${{ totalValue }} ទៅជា $ {{ totalValue }} ដើម្បីគឺជាកំហុសទម្រង់ស្តង្រឹមត្រូវ -->
+                <div class="stat-value fs-4 fw-bold">$ {{ totalValue }}</div>
                 <div class="stat-label small text-secondary">Total Value</div>
               </div>
             </div>
@@ -204,8 +206,9 @@
                   }}</span>
                 </td>
                 <td>
+                  <!-- ⬅️ កែពី ${{ ... }} ទៅជា $ {{ ... }} ដើម្បីគឺជាកំហុសទម្រង់ស្តង្រឹមត្រូវ -->
                   <div class="fw-semibold text-primary">
-                    ${{ parseFloat(prod.price).toFixed(2) }}
+                    $ {{ parseFloat(prod.price).toFixed(2) }}
                   </div>
                 </td>
                 <td>
@@ -228,7 +231,7 @@
                       <i class="bi bi-pencil"></i>
                     </button>
                     <button
-                      class="btn btn-sm btn-outline-danger border-0 rounded-2 btn-action-icon"
+                      class="btn-sm btn-outline-danger border-0 rounded-2 btn-action-icon"
                       @click="deleteProduct(prod.id)"
                     >
                       <i class="bi bi-trash"></i>
@@ -338,7 +341,8 @@
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold text-secondary small"
                   >Product Name *</label
-                ><input
+                >
+                <input
                   type="text"
                   class="form-control"
                   v-model="productsStore.form.title"
@@ -348,7 +352,8 @@
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold text-secondary small"
                   >Category *</label
-                ><select
+                >
+                <select
                   class="form-select"
                   v-model="selectedCategoryId"
                   required
@@ -366,7 +371,8 @@
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold text-secondary small"
                   >Price ($) *</label
-                ><input
+                >
+                <input
                   type="number"
                   step="0.01"
                   class="form-control"
@@ -377,7 +383,8 @@
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold text-secondary small"
                   >Condition</label
-                ><select
+                >
+                <select
                   class="form-select"
                   v-model="productsStore.form.condition"
                 >
@@ -389,7 +396,8 @@
               <div class="col-12 mb-3">
                 <label class="form-label fw-semibold text-secondary small"
                   >Description *</label
-                ><textarea
+                >
+                <textarea
                   class="form-control"
                   v-model="productsStore.form.description"
                   rows="2"
@@ -399,7 +407,8 @@
               <div class="col-12 mb-3">
                 <label class="form-label fw-semibold text-secondary small"
                   >Detail</label
-                ><textarea
+                >
+                <textarea
                   class="form-control"
                   v-model="productsStore.form.detail"
                   rows="2"
@@ -408,7 +417,8 @@
               <div class="col-12 mb-3">
                 <label class="form-label fw-semibold text-secondary small"
                   >Story</label
-                ><textarea
+                >
+                <textarea
                   class="form-control"
                   v-model="productsStore.form.story"
                   rows="2"
@@ -608,12 +618,41 @@
         </div>
       </div>
     </div>
+
+    <!-- ⬅️ បន្ថែមថ្មី Toast Component ដែលខ្សោយមើល -->
+    <div
+      class="toast-container position-fixed top-0 end-0 p-3"
+      v-if="productsStore.toast.show"
+      style="z-index: 1060"
+    >
+      <div
+        class="toast show align-items-center text-white border-0"
+        :class="
+          productsStore.toast.type === 'success' ? 'bg-success' : 'bg-danger'
+        "
+        role="alert"
+      >
+        <div class="d-flex">
+          <div class="toast-body d-flex align-items-center gap-2">
+            <i
+              class="bi"
+              :class="
+                productsStore.toast.type === 'success'
+                  ? 'bi-check-circle-fill'
+                  : 'bi-x-circle-fill'
+              "
+            ></i>
+            {{ productsStore.toast.message }}
+          </div>
+        </div>
+      </div>
+    </div>
   </AdminLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
-import { useProductsStore } from "../stores/ProductsStore"; // Adjust path if needed
+import { ref, computed, onMounted, watch } from "vue";
+import { useProductsStore } from "../stores/ProductsStore";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 
 const productsStore = useProductsStore();
@@ -628,6 +667,21 @@ const deleteId = ref(null);
 const totalValue = computed(() => {
   return (productsStore.totalValue || 0).toFixed(2);
 });
+
+// ⬅️ ការកែសម្រួល: ពេលជាបើបើបើកម្រាន់ Add ឬ Edit វាយក៏ប្រើ `watch` ដើម្បីគឺជាគ្រប់គ្រងគ្នាងយកទៅក្នុង Form ដោយស្វ័យប្រវត្តិ
+watch(
+  () => productsStore.showFormModal,
+  (isOpen) => {
+    if (isOpen && productsStore.isEditMode) {
+      // ប្រើប្រាស់ទិន្នន័យចាស់ដែលមកពី Store ទៅក្នុង UI ដោយស្វ័យប្រវត្តិ
+      selectedCategoryId.value = productsStore.form.category_ids[0] ?? null;
+      imagePreview.value = null; // មិនបង្ហាញរូបភាពចាស់ពីព្រោះ User គួរចុចថ្មីថ្មីវិញ
+    } else if (!isOpen) {
+      selectedCategoryId.value = null;
+      imagePreview.value = null;
+    }
+  },
+);
 
 // Computed: Show exactly 8 pages
 const visiblePages = computed(() => {
@@ -645,7 +699,7 @@ const refreshData = async () => {
   await Promise.all([
     productsStore.fetchProducts(),
     productsStore.fetchCategories(),
-    productsStore.fetchTotalValue(), // Fetch Grand Total
+    productsStore.fetchTotalValue(),
   ]);
 };
 
@@ -654,12 +708,17 @@ const handleSearch = () => {
   productsStore.fetchProducts();
 };
 
-const getCategoryName = (cats) =>
-  !cats || !Array.isArray(cats)
-    ? "Uncategorized"
-    : cats.map((c) => c.name).join(", ");
+// const getCategoryName = (cats) =>
+//   !cats || !Array.isArray(cats) ? "Uncategorized" : cats.map((c) => c.name).join(", ");
+
+const getCategoryName = (cats) => {
+  if (!cats || !Array.isArray(cats) || cats.length === 0)
+    return "Uncategorized";
+  return cats.map((c) => c.name).join(", ");
+};
 const getCreatorInitial = (creator) =>
   !creator || !creator.name ? "?" : creator.name.charAt(0).toUpperCase();
+
 const handleImageError = (e) => (e.target.style.display = "none");
 
 const handleFileUpload = (e) => {
@@ -688,18 +747,22 @@ const closeDeleteModal = () => {
   showDeleteModal.value = false;
   deleteId.value = null;
 };
+
 const confirmDelete = async () => {
   const success = await productsStore.deleteProduct(deleteId.value);
   if (success) closeDeleteModal();
 };
 
 const handleSave = async () => {
+  // ⬅️ កែសម្រួល: ដាក់ទិន្នន័យពី UI ទៅក្នុង Store មុនោះទើបញ្ជូនទៅ Backend
   productsStore.form.category_ids = selectedCategoryId.value
     ? [selectedCategoryId.value]
     : [];
+
   const success = await productsStore.saveProduct();
   if (success) {
     imagePreview.value = null;
+    selectedCategoryId.value = null;
     await productsStore.fetchTotalValue(); // Refresh total value after save
   }
 };
@@ -724,9 +787,8 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  animation: fadeIn 0.2s ease;
 }
-
-/* Modal Container */
 .modal-custom {
   width: 100%;
   max-width: 500px;
@@ -745,16 +807,6 @@ onMounted(() => {
   max-width: 400px;
   max-height: auto;
 }
-
-/* Scrollable Body */
-.modal-body-custom {
-  flex-grow: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 1.5rem;
-}
-
-/* Sticky Header */
 .modal-header-custom {
   flex-shrink: 0;
   position: sticky;
@@ -769,7 +821,12 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
 }
-
+.modal-body-custom {
+  flex-grow: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1.5rem;
+}
 .preview-container {
   position: relative;
   width: 100px;
@@ -782,15 +839,22 @@ onMounted(() => {
   width: 64px;
   height: 64px;
 }
-
-/* Stat Cards */
 .stat-card {
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  transition:
+    transform 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
 }
-
 .stat-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes slideUp {
   from {

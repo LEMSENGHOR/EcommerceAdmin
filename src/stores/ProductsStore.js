@@ -3,15 +3,11 @@ import api from "@/api/api.js";
 
 export const useProductsStore = defineStore("products", {
   state: () => ({
-    // ── PRODUCT DATA ──
     products: [],
     product: null,
-    selectedProductId: null, // Track ID for editing
-
-    // ── CATEGORY DATA ──
+    selectedProductId: null,
     categories: [],
 
-    // ── UI FLAGS ──
     loading: false,
     detailLoading: false,
     saving: false,
@@ -20,14 +16,12 @@ export const useProductsStore = defineStore("products", {
     categorySaving: false,
     categoryDeleting: false,
 
-    // ── MODALS ──
     showFormModal: false,
     showDetailModal: false,
     showCategoryModal: false,
     isEditMode: false,
     isCategoryEditMode: false,
 
-    // ── FORM (Product) ──
     form: {
       title: "",
       description: "",
@@ -39,22 +33,19 @@ export const useProductsStore = defineStore("products", {
       category_ids: [],
     },
 
-    // ── FORM (Category) ──
     categoryForm: {
       name: "",
       description: "",
       image: null,
     },
 
-    // ── Search, Pagination & Totals ──
     searchQuery: "",
     currentPage: 1,
     perPage: 8,
     total: 0,
     lastPage: 1,
-    totalValue: 0, // Grand total of ALL products
+    totalValue: 0,
 
-    // ── Toast ──
     toast: { show: false, message: "", type: "success" },
   }),
 
@@ -65,14 +56,12 @@ export const useProductsStore = defineStore("products", {
         return imagePath;
       if (imagePath.startsWith("/"))
         return import.meta.env.VITE_BASE_URL + imagePath;
-      return imagePath;
+      return import.meta.env.VITE_BASE_URL + "/" + imagePath;
     },
   },
 
   actions: {
-    // ============================================================
-    // CATEGORY ACTIONS
-    // ============================================================
+    // ───────────── CATEGORY ACTIONS ─────────────
     async fetchCategories() {
       this.categoryLoading = true;
       try {
@@ -96,7 +85,6 @@ export const useProductsStore = defineStore("products", {
         formData.append("description", this.categoryForm.description);
         if (this.categoryForm.image)
           formData.append("image", this.categoryForm.image);
-
         const response = await api.post("/categories", formData);
         this.categories.push(response.data.data || response.data);
         this.showToast("Category created successfully");
@@ -120,15 +108,14 @@ export const useProductsStore = defineStore("products", {
         formData.append("description", this.categoryForm.description);
         if (this.categoryForm.image)
           formData.append("image", this.categoryForm.image);
-
         const response = await api.post(`/categories/${id}`, formData);
         const idx = this.categories.findIndex((c) => c.id === id);
-        if (idx !== -1)
+        if (idx !== -1) {
           this.categories[idx] = {
             ...this.categories[idx],
             ...(response.data.data || response.data),
           };
-
+        }
         this.showToast("Category updated successfully");
         this.closeCategoryModal();
         return true;
@@ -177,11 +164,7 @@ export const useProductsStore = defineStore("products", {
       this.categoryForm = { name: "", description: "", image: null };
     },
 
-    // ============================================================
-    // PRODUCT ACTIONS
-    // ============================================================
-
-    // 1. FETCH PAGINATED PRODUCTS
+    // ───────────── PRODUCT ACTIONS ─────────────
     async fetchProducts() {
       this.loading = true;
       try {
@@ -195,10 +178,14 @@ export const useProductsStore = defineStore("products", {
         const payload = response.data;
         if (payload.result && payload.data) {
           this.products = payload.data;
-          const p = payload.paginate;
-          this.total = p.total;
-          this.lastPage = p.last_page;
-          this.currentPage = p.current_page;
+          if (payload.paginate) {
+            this.total = payload.paginate.total;
+            this.lastPage = payload.paginate.last_page;
+            this.currentPage = payload.paginate.current_page;
+          } else {
+            this.total = payload.data.length;
+            this.lastPage = 1;
+          }
         } else {
           this.products = [];
           this.total = 0;
@@ -210,11 +197,10 @@ export const useProductsStore = defineStore("products", {
       }
     },
 
-    // 2. FETCH GRAND TOTAL VALUE (ALL Products)
     async fetchTotalValue() {
       try {
         const response = await api.get("/products", {
-          params: { per_page: 99999 },
+          params: { per_page: 2000 },
         });
         const payload = response.data;
         if (payload.result && payload.data) {
@@ -228,7 +214,6 @@ export const useProductsStore = defineStore("products", {
       }
     },
 
-    // 3. GET DETAIL
     async fetchProductDetail(id) {
       this.detailLoading = true;
       this.product = null;
@@ -242,33 +227,66 @@ export const useProductsStore = defineStore("products", {
       }
     },
 
-    // 4. SAVE PRODUCT (Create or Update)
     saveProduct() {
       return this.isEditMode
         ? this.updateProduct(this.selectedProductId)
         : this.createProduct();
     },
 
+    // async createProduct() {
+    //   this.saving = true;
+    //   try {
+    //     const formData = new FormData();
+    //     formData.append("title", this.form.title);
+    //     formData.append("description", this.form.description);
+    //     formData.append("detail", this.form.detail);
+    //     formData.append("condition", this.form.condition);
+    //     formData.append("story", this.form.story);
+    //     formData.append("price", this.form.price);
+    //     if (this.form.image) formData.append("image", this.form.image);
+    //     if (this.form.category_ids?.length) {
+    //       this.form.category_ids.forEach((id) =>
+    //         formData.append("category_ids[]", id),
+    //       );
+    //     }
+    //     const response = await api.post("/products", formData);
+    //     this.products.unshift(response.data.data || response.data);
+    //     this.showToast("Product created successfully");
+    //     this.closeFormModal();
+    //     return true;
+    //   } catch (err) {
+    //     this.handleError(err, "Failed to create product");
+    //     return false;
+    //   } finally {
+    //     this.saving = false;
+    //   }
+    // },
     async createProduct() {
       this.saving = true;
       try {
         const formData = new FormData();
         formData.append("title", this.form.title);
         formData.append("description", this.form.description);
-        formData.append("detail", this.form.detail);
+        formData.append("detail", this.form.detail || "");
         formData.append("condition", this.form.condition);
-        formData.append("story", this.form.story);
+        formData.append("story", this.form.story || "");
         formData.append("price", this.form.price);
-        if (this.form.image) formData.append("image", this.form.image);
-        if (this.form.category_ids?.length)
-          this.form.category_ids.forEach((id) =>
-            formData.append("category_ids[]", id),
-          );
+        formData.append(
+          "category_ids",
+          JSON.stringify([Number(this.form.category_ids[0])]), // ✅ match backend
+        );
+        if (this.form.image instanceof File) {
+          formData.append("image", this.form.image);
+        }
 
-        const response = await api.post("/products", formData);
-        this.products.unshift(response.data.data || response.data);
+        await api.post("/products", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
         this.showToast("Product created successfully");
         this.closeFormModal();
+        await this.fetchProducts(); // ✅ refresh from server
+        await this.fetchTotalValue();
         return true;
       } catch (err) {
         this.handleError(err, "Failed to create product");
@@ -277,33 +295,27 @@ export const useProductsStore = defineStore("products", {
         this.saving = false;
       }
     },
-
-    // =================================---------------------
-    // ───────────────────────────────────────────────
-    // 4. POST UPDATE /api/products/1
-    // ───────────────────────────────────────────────
     // async updateProduct(id) {
     //   if (!id) return false;
     //   this.saving = true;
     //   try {
     //     const formData = new FormData();
-
-    //     // Note: NO _method spoofing needed since we use api.put
+    //     formData.append("_method", "PUT");
     //     formData.append("title", this.form.title);
-    //     formData.append("description", this.form.description);
-    //     formData.append("detail", this.form.detail);
-    //     formData.append("condition", this.form.condition);
-    //     formData.append("story", this.form.story);
     //     formData.append("price", this.form.price);
-
-    //     if (this.form.image) formData.append("image", this.form.image);
-    //     if (this.form.category_ids?.length)
+    //     formData.append("condition", this.form.condition);
+    //     formData.append("description", this.form.description);
+    //     formData.append("detail", this.form.detail || "");
+    //     formData.append("story", this.form.story || "");
+    //     if (this.form.category_ids?.length) {
     //       this.form.category_ids.forEach((catId) =>
     //         formData.append("category_ids[]", catId),
     //       );
-
-    //     // Use api.put for real PUT request
-    //     const response = await api.put(`/products/${id}`, formData);
+    //     }
+    //     if (this.form.image instanceof File) {
+    //       formData.append("image", this.form.image);
+    //     }
+    //     const response = await api.post(`/products/${id}`, formData);
     //     const idx = this.products.findIndex((p) => p.id === id);
     //     if (idx !== -1) {
     //       this.products[idx] = {
@@ -311,9 +323,9 @@ export const useProductsStore = defineStore("products", {
     //         ...(response.data.data || response.data),
     //       };
     //     }
-
     //     this.showToast("Product updated successfully");
     //     this.closeFormModal();
+    //     await this.fetchProducts();
     //     return true;
     //   } catch (err) {
     //     this.handleError(err, "Failed to update product");
@@ -323,38 +335,50 @@ export const useProductsStore = defineStore("products", {
     //   }
     // },
 
+    // async deleteProduct(id) {
+    //   this.deleting = true;
+    //   try {
+    //     await api.delete(`/products/${id}`);
+    //     this.products = this.products.filter((p) => p.id !== id);
+    //     this.showToast("Product deleted successfully");
+    //     await this.fetchProducts(); // Refresh pagination
+    //     return true;
+    //   } catch (err) {
+    //     this.handleError(err, "Failed to delete product");
+    //     return false;
+    //   } finally {
+    //     this.deleting = false;
+    //   }
+    // },
     // async updateProduct(id) {
     //   if (!id) return false;
     //   this.saving = true;
     //   try {
     //     const formData = new FormData();
-
-    //     formData.append("_method", "PUT"); // ← add this
+    //     // ✅ NO _method: PUT — backend doesn't support it
     //     formData.append("title", this.form.title);
-    //     formData.append("description", this.form.description);
-    //     formData.append("detail", this.form.detail);
-    //     formData.append("condition", this.form.condition);
-    //     formData.append("story", this.form.story);
     //     formData.append("price", this.form.price);
-
-    //     if (this.form.image) formData.append("image", this.form.image);
-    //     if (this.form.category_ids?.length)
-    //       this.form.category_ids.forEach((catId) =>
-    //         formData.append("category_ids[]", catId),
-    //       );
-
-    //     const response = await api.post(`/products/${id}`, formData); // ← put → post
-
-    //     const idx = this.products.findIndex((p) => p.id === id);
-    //     if (idx !== -1) {
-    //       this.products[idx] = {
-    //         ...this.products[idx],
-    //         ...(response.data.data || response.data),
-    //       };
+    //     formData.append("condition", this.form.condition);
+    //     formData.append("description", this.form.description);
+    //     formData.append("detail", this.form.detail || "");
+    //     formData.append("story", this.form.story || "");
+    //     formData.append(
+    //       "category_ids",
+    //       JSON.stringify([Number(this.form.category_ids[0])]),
+    //     );
+    //     if (this.form.image instanceof File) {
+    //       formData.append("image", this.form.image);
     //     }
+
+    //     // ✅ plain POST, no _method
+    //     await api.post(`/products/${id}`, formData, {
+    //       headers: { "Content-Type": "multipart/form-data" },
+    //     });
 
     //     this.showToast("Product updated successfully");
     //     this.closeFormModal();
+    //     await this.fetchProducts(); // ✅ refresh from server
+    //     await this.fetchTotalValue();
     //     return true;
     //   } catch (err) {
     //     this.handleError(err, "Failed to update product");
@@ -363,55 +387,97 @@ export const useProductsStore = defineStore("products", {
     //     this.saving = false;
     //   }
     // },
-    async updateProduct(id) {
-      if (!id) return false;
-      this.saving = true;
-      try {
-        const formData = new FormData();
+    // async updateProduct(id) {
+    //   if (!id) return false;
+    //   console.log("🔵 UPDATE — id:", id);
+    //   console.log("🔵 UPDATE — category_ids:", this.form.category_ids);
+    //   console.log(
+    //     "🔵 UPDATE — form:",
+    //     JSON.stringify({
+    //       title: this.form.title,
+    //       price: this.form.price,
+    //       condition: this.form.condition,
+    //       category_ids: this.form.category_ids,
+    //     }),
+    //   );
 
-        formData.append("_method", "PUT");
-        formData.append("title", this.form.title);
-        formData.append("price", this.form.price);
-        formData.append("condition", this.form.condition);
-        formData.append("description", this.form.description);
-        formData.append("detail", this.form.detail || "");
-        formData.append("story", this.form.story || "");
-        formData.append(
-          "category_ids",
-          JSON.stringify([Number(this.form.category_ids[0])]),
-        ); // ← key fix
-        if (this.form.image instanceof File)
-          formData.append("image", this.form.image); // ← key fix
+    //   this.saving = true;
+    //   try {
+    //     const formData = new FormData();
+    //     formData.append("title", this.form.title);
+    //     formData.append("price", this.form.price);
+    //     formData.append("condition", this.form.condition);
+    //     formData.append("description", this.form.description);
+    //     formData.append("detail", this.form.detail || "");
+    //     formData.append("story", this.form.story || "");
+    //     formData.append(
+    //       "category_ids",
+    //       JSON.stringify([Number(this.form.category_ids[0])]),
+    //     );
+    //     if (this.form.image instanceof File) {
+    //       formData.append("image", this.form.image);
+    //     }
 
-        const response = await api.post(`/products/${id}`, formData, {
-          headers: { "Content-Type": "multipart/form-data" }, // ← add
-        });
+    //     console.log("🔵 UPDATE — sending POST to:", `/products/${id}`);
+    //     const response = await api.post(`/products/${id}`, formData, {
+    //       headers: { "Content-Type": "multipart/form-data" },
+    //     });
+    //     console.log("✅ UPDATE — response:", response.data);
 
-        const idx = this.products.findIndex((p) => p.id === id);
-        if (idx !== -1) {
-          this.products[idx] = {
-            ...this.products[idx],
-            ...(response.data.data || response.data),
-          };
-        }
+    //     this.showToast("Product updated successfully");
+    //     this.closeFormModal();
+    //     await this.fetchProducts();
+    //     await this.fetchTotalValue();
+    //     return true;
+    //   } catch (err) {
+    //     console.error("❌ UPDATE — error status:", err.response?.status);
+    //     console.error("❌ UPDATE — error data:", err.response?.data);
+    //     this.handleError(err, "Failed to update product");
+    //     return false;
+    //   } finally {
+    //     this.saving = false;
+    //   }
+    // },
 
-        this.showToast("Product updated successfully");
-        this.closeFormModal();
-        return true;
-      } catch (err) {
-        this.handleError(err, "Failed to update product");
-        return false;
-      } finally {
-        this.saving = false;
-      }
-    },
+    // async deleteProduct(id) {
+    //   console.log("🔴 DELETE — id:", id, "type:", typeof id);
+    //   this.deleting = true;
+    //   try {
+    //     console.log("🔴 DELETE — sending to:", `/products/${id}`);
+    //     const response = await api.delete(`/products/${id}`);
+    //     console.log("✅ DELETE — response:", response.data);
+
+    //     this.showToast("Product deleted successfully");
+    //     await this.fetchProducts();
+    //     await this.fetchTotalValue();
+    //     return true;
+    //   } catch (err) {
+    //     console.error("❌ DELETE — error status:", err.response?.status);
+    //     console.error("❌ DELETE — error data:", err.response?.data);
+    //     this.handleError(err, "Failed to delete product");
+    //     return false;
+    //   } finally {
+    //     this.deleting = false;
+    //   }
+    // },
 
     async deleteProduct(id) {
       this.deleting = true;
       try {
-        await api.delete(`/products/${id}`);
-        this.products = this.products.filter((p) => p.id !== id);
+        const response = await api.delete(`/products/${id}`);
+
+        // ✅ Check if backend returned result: false
+        if (response.data.result === false) {
+          this.showToast(
+            response.data.message || "Failed to delete product",
+            "error",
+          );
+          return false;
+        }
+
         this.showToast("Product deleted successfully");
+        await this.fetchProducts();
+        await this.fetchTotalValue();
         return true;
       } catch (err) {
         this.handleError(err, "Failed to delete product");
@@ -421,9 +487,68 @@ export const useProductsStore = defineStore("products", {
       }
     },
 
-    // ───────────────────────────────────────────────
-    // HELPERS & MODALS
-    // ───────────────────────────────────────────────
+    async updateProduct(id) {
+      if (!id) return false;
+      this.saving = true;
+      try {
+        const formData = new FormData();
+        formData.append("title", this.form.title);
+        formData.append("price", this.form.price);
+        formData.append("condition", this.form.condition);
+        formData.append("description", this.form.description);
+        formData.append("detail", this.form.detail || "");
+        formData.append("story", this.form.story || "");
+        formData.append(
+          "category_ids",
+          JSON.stringify([Number(this.form.category_ids[0])]),
+        );
+        if (this.form.image instanceof File) {
+          formData.append("image", this.form.image);
+        }
+
+        const response = await api.post(`/products/${id}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        // ✅ Check if backend returned result: false
+        if (response.data.result === false) {
+          this.showToast(
+            response.data.message || "Failed to update product",
+            "error",
+          );
+          return false;
+        }
+
+        this.showToast("Product updated successfully");
+        this.closeFormModal();
+        await this.fetchProducts();
+        await this.fetchTotalValue();
+        return true;
+      } catch (err) {
+        this.handleError(err, "Failed to update product");
+        return false;
+      } finally {
+        this.saving = false;
+      }
+    },
+    // async deleteProduct(id) {
+    //   console.log("Deleting ID:", id) // ← add this
+    //   this.deleting = true;
+    //   try {
+    //     await api.delete(`/products/${id}`);
+    //     this.showToast("Product deleted successfully");
+    //     // ✅ refresh from server instead of local filter
+    //     await this.fetchProducts();
+    //     await this.fetchTotalValue();
+    //     return true;
+    //   } catch (err) {
+    //     this.handleError(err, "Failed to delete product");
+    //     return false;
+    //   } finally {
+    //     this.deleting = false;
+    //   }
+    // },
+    // ───────────── MODAL HELPERS ─────────────
     openCreateModal() {
       this.isEditMode = false;
       this.selectedProductId = null;
@@ -433,7 +558,8 @@ export const useProductsStore = defineStore("products", {
 
     openEditModal(product) {
       this.isEditMode = true;
-      this.selectedProductId = product.id; // Save ID for update
+      this.selectedProductId = product.id;
+      // ⬅️ ការកែសម្រួលទិន្នន័យចាស់ដើមកពីតារាងលើទៅលើក្នុង Form
       this.form = {
         title: product.title || "",
         description: product.description || "",
@@ -441,7 +567,7 @@ export const useProductsStore = defineStore("products", {
         condition: product.condition || "new",
         story: product.story || "",
         price: product.price || "",
-        image: null,
+        image: null, // មិនត្រូវបញ្ជូររូបភាពចាស់ ពីព្រោះ User គួរចុចថ្មីថ្មីថ្មី
         category_ids: product.categories
           ? product.categories.map((c) => c.id)
           : [],
@@ -462,7 +588,6 @@ export const useProductsStore = defineStore("products", {
       this.showDetailModal = false;
       this.product = null;
     },
-
     resetForm() {
       this.form = {
         title: "",

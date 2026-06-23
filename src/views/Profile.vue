@@ -112,7 +112,7 @@
                 </div>
               </div>
             </div>
-            
+
             <!-- Tab Switcher -->
             <div class="tab-switcher-wrapper">
               <div class="d-flex gap-2 flex-wrap">
@@ -156,7 +156,6 @@
                 </button>
               </div>
             </div>
-            
           </div>
         </div>
 
@@ -189,7 +188,6 @@
             </div>
 
             <div class="d-flex flex-column gap-2">
-             
               <label
                 class="btn btn-primary border-0 btn-sm rounded-2 px-2 d-flex align-items-center gap-2 mb-0"
                 style="width: fit-content; cursor: pointer"
@@ -205,23 +203,21 @@
               </label>
               <div class="">
                 <button
-                class="btn btn-outline-danger btn-sm rounded-2 px-3 d-flex align-items-center gap-2"
-                @click="handleDeleteAvatar"
-                :disabled="!formData.avatarPreview || store.deletingAvatar"
-              >
-                <span class="" v-if="!store.deletingAvatar">
-                  <i class="bi bi-trash"></i> លុបរូបភាព
-                </span>
-                <!-- <span v-else><span class="spinner-border spinner-border-sm"></+span></span> -->
-              </button>
+                  class="btn btn-outline-danger btn-sm rounded-2 px-3 d-flex align-items-center gap-2"
+                  @click="handleDeleteAvatar"
+                  :disabled="!formData.avatarPreview || store.deletingAvatar"
+                >
+                  <span class="" v-if="!store.deletingAvatar">
+                    <i class="bi bi-trash"></i> លុបរូបភាព
+                  </span>
+                  <!-- <span v-else><span class="spinner-border spinner-border-sm"></+span></span> -->
+                </button>
               </div>
               <p class="form-text text-muted small mb-0">
                 JPG, PNG · អតិបរមា 2MB
               </p>
             </div>
-
           </div>
-          
 
           <!-- Fields -->
           <div class="row g-3">
@@ -559,17 +555,15 @@
           </div>
         </div>
 
-<!-- Placeholder when no tab is selected -->
-<div 
-  v-if="!activeTab" 
-  class="card shadow-sm border-0 rounded-4 p-5 text-center"
->
-  <!-- <div class="mb-3">
-    <i class="bi bi-hand-index-thumb text-muted fs-1"></i>
-  </div> -->
-  <p class="text-secondary fw-semibold">សូមជ្រើសរើសម៉ឺនុយខាងលើដើម្បីបន្ត</p>
-</div>
-
+        <!-- Placeholder when no tab is selected -->
+        <!-- <div
+          v-if="!activeTab"
+          class="card shadow-sm border-0 rounded-4 p-5 text-center"
+        >
+          <p class="text-secondary fw-semibold">
+            សូមជ្រើសរើសម៉ឺនុយខាងលើដើម្បីបន្ត
+          </p>
+        </div> -->
       </div>
 
       <!-- Toast -->
