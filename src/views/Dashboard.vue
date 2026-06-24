@@ -1,5 +1,5 @@
 <template>
-  <AdminLayout pageTitle="Dashboard">
+  <!-- <AdminLayout pageTitle="Dashboard"> -->
     <!-- Toast Notification -->
     <Transition name="toast">
       <div
@@ -7,10 +7,7 @@
         class="toast-notification"
         :class="`toast-${dashboardStore.toast.type}`"
       >
-        <i
-          :class="getToastIcon(dashboardStore.toast.type)"
-          class="me-2"
-        ></i>
+        <i :class="getToastIcon(dashboardStore.toast.type)" class="me-2"></i>
         {{ dashboardStore.toast.message }}
         <button
           class="btn-close btn-close-white ms-3"
@@ -310,9 +307,7 @@
                 <div class="text-muted mb-2">
                   <i class="bi bi-activity fs-1"></i>
                 </div>
-                <span class="text-secondary fw-bold"
-                  >No recent activities</span
-                >
+                <span class="text-secondary fw-bold">No recent activities</span>
               </div>
               <div v-else class="activity-list">
                 <div
@@ -479,7 +474,7 @@
         </div>
       </div>
     </div>
-  </AdminLayout>
+  <!-- </AdminLayout> -->
 </template>
 
 <script setup>
@@ -488,7 +483,9 @@ import AdminLayout from "@/layouts/AdminLayout.vue";
 import { useDashboardStore } from "@/stores/DashboardStore.js";
 import { useProductsStore } from "@/stores/ProductsStore.js";
 import { useCategoryStore } from "@/stores/categoryStore.js";
+import { useAuthStore } from "@/stores/Authstore";
 
+const authStore = useAuthStore();
 // ── Stores ──────────────────────────────────────────
 const dashboardStore = useDashboardStore();
 const productsStore = useProductsStore();
@@ -677,7 +674,9 @@ const getActivityIconClass = (type) => {
     delete: "bg-danger bg-opacity-10 text-danger",
     create: "bg-success bg-opacity-10 text-success",
   };
-  return classes[type?.toLowerCase()] || "bg-secondary bg-opacity-10 text-secondary";
+  return (
+    classes[type?.toLowerCase()] || "bg-secondary bg-opacity-10 text-secondary"
+  );
 };
 
 const formatDate = (date) => {

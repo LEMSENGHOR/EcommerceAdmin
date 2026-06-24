@@ -1,5 +1,5 @@
 <template>
-  <AdminLayout pageTitle="Settings">
+  <!-- <AdminLayout pageTitle="Settings"> -->
     <div class="settings-container">
       <!-- Loading State -->
       <div v-if="store.loading" class="text-center py-5">
@@ -593,7 +593,7 @@
         </div>
       </div>
     </div>
-  </AdminLayout>
+  <!-- </AdminLayout> -->
 </template>
 
 <script setup>

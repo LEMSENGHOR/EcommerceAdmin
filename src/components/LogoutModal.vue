@@ -23,13 +23,13 @@ const emit = defineEmits(['close', 'confirm'])
         </div>
 
         <!-- Content -->
-        <h3 class="modal-title-custom">Logout</h3>
-        <p class="modal-text">Are you sure you want to logout?</p>
+        <h3 class="modal-title-custom">ចាកចេញ</h3>
+        <p class="modal-text">តើអ្នកប្រាកដថាចង់ចាកចេញទេ?</p>
 
         <!-- Buttons -->
         <div class="modal-actions">
-          <button class="btn-cancel" @click="emit('close')">Cancel</button>
-          <button class="btn-logout" @click="emit('confirm')">Yes, Logout</button>
+          <button class="btn-cancel" @click="emit('close')">បោះបង់</button>
+          <button class="btn-logout" @click="emit('confirm')">ព្រមចាកចេញ</button>
         </div>
       </div>
     </div>

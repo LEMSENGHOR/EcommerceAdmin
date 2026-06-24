@@ -1,5 +1,5 @@
 <template>
-  <AdminLayout pageTitle="ការទូទាត់">
+  <!-- <AdminLayout pageTitle="ការទូទាត់"> -->
     <div class="payments-page">
       <!-- Stats Cards -->
       <div class="row g-4 mb-4">
@@ -554,7 +554,7 @@
         </div>
       </div>
     </div>
-  </AdminLayout>
+  <!-- </AdminLayout> -->
 </template>
 
 <script setup>

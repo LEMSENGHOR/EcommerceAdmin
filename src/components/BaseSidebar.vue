@@ -1,47 +1,44 @@
 <script setup>
-import { useUser } from '../composables/useUser'
+import { useUser } from "../composables/useUser";
 
 const props = defineProps({
   isOpen: {
     type: Boolean,
     default: false,
   },
-})
+});
 
-const emit = defineEmits(['close', 'logout'])
+const emit = defineEmits(["close", "logout"]);
 
-const { userName, userInitial, hasAvatar, userAvatar } = useUser()
+const { userName, userInitial, hasAvatar, userAvatar } = useUser();
 
-// Navigation items defined as data for clarity
 const sections = [
   {
-    key: 'main',
+    key: "main",
     items: [
-      { to: '/', icon: 'bi-grid-fill', label: 'ផ្ទាំងគ្រប់គ្រង', exact: true },
+      { to: "/", icon: "bi-grid-fill", label: "ផ្ទាំងគ្រប់គ្រង", exact: true },
     ],
   },
   {
-    key: 'management',
-    title: 'ការគ្រប់គ្រង',
+    key: "management",
+    title: "ការគ្រប់គ្រង",
     items: [
-      { to: '/products', icon: 'bi-box-seam', label: 'ផលិតផល' },
-      { to: '/categories', icon: 'bi-tags', label: 'ប្រភេទផលិតផល' },
-      { to: '/devices', icon: 'bi-display', label: 'ឧបករណ៍' },
-      { to: '/carts', icon: 'bi-cart', label: 'រទេះទំនិញ' },
-      { to: '/payments', icon: 'bi-credit-card', label: 'ការទូទាត់' },
+      { to: "/products", icon: "bi-box-seam", label: "ផលិតផល" },
+      { to: "/categories", icon: "bi-tags", label: "ប្រភេទផលិតផល" },
+      { to: "/devices", icon: "bi-display", label: "ឧបករណ៍" },
+      { to: "/carts", icon: "bi-cart", label: "រទេះទំនិញ" },
+      { to: "/payments", icon: "bi-credit-card", label: "ការទូទាត់" },
     ],
   },
   {
-    key: 'account',
-    title: 'គណនី',
-    items: [
-      { to: '/profile', icon: 'bi-person', label: 'Profile' },
-    ],
+    key: "account",
+    title: "គណនី",
+    items: [{ to: "/profile", icon: "bi-person", label: "ប្រវត្តិរូប" }],
   },
-]
+];
 
 function handleBrandImageError(e) {
-  e.target.style.display = 'none'
+  e.target.style.display = "none";
 }
 </script>
 
@@ -108,13 +105,9 @@ function handleBrandImageError(e) {
 
       <!-- Logout -->
       <li>
-        <a
-          href="#"
-          class="nav-link text-white"
-          @click.prevent="emit('logout')"
-        >
+        <a href="#" class="nav-link text-white" @click.prevent="emit('logout')">
           <i class="bi bi-box-arrow-right me-2"></i>
-          Logout
+          ចាកចេញ
         </a>
       </li>
     </ul>
@@ -169,62 +162,6 @@ function handleBrandImageError(e) {
     </div>
   </aside>
 </template>
-
-<!-- <style scoped>
-.sidebar {
-  width: 260px;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  z-index: 1050;
-  transform: translateX(-100%);
-  transition: transform 0.3s ease-in-out;
-  overflow-y: auto;
-}
-
-@media (min-width: 768px) {
-  .sidebar {
-    position: relative;
-    transform: none;
-    z-index: 1;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .sidebar.show {
-    transform: translateX(0);
-  }
-}
-
-.brand-link:hover {
-  color: white;
-  opacity: 0.9;
-}
-
-.nav-link {
-  border-radius: 0.375rem;
-  margin-bottom: 0.25rem;
-  padding: 0.5rem 1rem;
-  transition: all 0.2s ease;
-}
-
-.nav-link.active {
-  background-color: #0d6efd;
-  color: white !important;
-}
-
-.nav-link:hover:not(.active) {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: white;
-}
-
-.avatar-circle {
-  width: 32px;
-  height: 32px;
-  font-size: 14px;
-}
-</style> -->
 
 <style scoped>
 .sidebar {

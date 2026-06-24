@@ -1,5 +1,5 @@
 <template>
-  <AdminLayout pageTitle="ផលិតផល">
+  <!-- <AdminLayout pageTitle="ផលិតផល"> -->
     <div class="products-page">
       <!-- Stats Cards -->
       <div class="row g-4 mb-4">
@@ -124,8 +124,8 @@
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
             <thead class="bg-light">
-              <tr>
-                <th class="small text-uppercase text-secondary fw-bold">
+              <tr class=" text-center">
+                <th class="small text-uppercase text-secondary fw-bold text-start">
                   Product
                 </th>
                 <th class="small text-uppercase text-secondary fw-bold">
@@ -145,7 +145,7 @@
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody class="">
               <tr v-if="productsStore.loading">
                 <td colspan="6" class="text-center text-secondary py-5">
                   <div class="spinner-border spinner-border-sm me-2"></div>
@@ -647,7 +647,7 @@
         </div>
       </div>
     </div>
-  </AdminLayout>
+  <!-- </AdminLayout> -->
 </template>
 
 <script setup>

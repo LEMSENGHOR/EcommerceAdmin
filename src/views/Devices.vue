@@ -1,5 +1,5 @@
 <template>
-  <AdminLayout pageTitle="ឧបករណ៍">
+  <!-- <AdminLayout pageTitle="ឧបករណ៍"> -->
     <div class="devices-page">
       <!-- Stats Cards -->
       <div class="row g-4 mb-4">
@@ -164,7 +164,7 @@
         </div>
       </div>
     </div>
-  </AdminLayout>
+  <!-- </AdminLayout> -->
 </template>
 
 <script setup>
