@@ -1,6 +1,33 @@
+<script setup>
+import { ref, reactive, onMounted } from "vue";
+import { useAuthStore } from "../stores/Authstore";
+import BaseButton from "../components/BaseButton.vue";
+
+const authStore = useAuthStore();
+const showPassword = ref(false);
+
+const form = reactive({
+  email: "",
+  password: "",
+});
+
+// Auto-fill credentials in development (remove in production)
+onMounted(() => {
+  if (import.meta.env.DEV) {
+    form.email = "chandalen@gmail.com";
+    form.password = "11223344Aa!";
+  }
+});
+
+const handleLogin = async () => {
+  authStore.clearError();
+  await authStore.login(form.email, form.password);
+};
+</script>
+
 <template>
   <div class="login-wrapper bg-dark">
-    <!-- Background Decoration (Glow Effect) -->
+    <!-- Background Glow -->
     <div
       class="position-absolute top-50 start-50 translate-middle rounded-circle opacity-25"
       style="
@@ -20,31 +47,38 @@
     >
       <!-- Brand -->
       <div class="brand text-center mb-4">
-        <div
+        <!-- <div
           class="brand-icon bg-primary text-white rounded-3 d-flex align-items-center justify-content-center mx-auto mb-3"
-        >
-          LB
+        ></div> -->
+        <!-- <div class=" align-items-center">
+        <img class=" mb-2 rounded-1" style=" width: 15%; height: 15%;" src="../assets/images/image.png" alt="" />
+       </div>  -->
+        <div class="d-flex align-items-center justify-content-center">
+          <img
+            class="mb-2 rounded-1"
+            src="../assets/images/image.png"
+            alt=""
+            style="width: 15%; max-width: 150px; min-width: 60px; height: auto"
+          />
         </div>
-        <h4 class="fw-bold">Welcome Back</h4>
-        <p class="text-secondary small">Sign in to Louk Bontor Admin</p>
+        <div class=""></div>
+        <h4 class="fw-bold">សូមស្វាគមន៍ត្រឡប់មកវិញ</h4>
+        <p class="text-secondary small">ចូលទៅកាន់ពិភពទំនិញ</p>
       </div>
 
       <!-- Error Alert -->
-      <!-- <div
-        v-if="error"
+      <div
+        v-if="authStore.error"
         class="alert alert-danger d-flex align-items-center mb-3"
         role="alert"
       >
         <i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>
-        <div>{{ error }}</div>
-      </div> -->
-      <!-- Error Alert — use store error -->
-      <div v-if="authStore.error" class="alert alert-danger ...">
-        {{ authStore.error }}
+        <div>{{ authStore.error }}</div>
       </div>
 
       <!-- Login Form -->
       <form @submit.prevent="handleLogin">
+        <!-- Email -->
         <div class="form-floating mb-3">
           <input
             type="email"
@@ -57,7 +91,7 @@
           <label for="email">Email address</label>
         </div>
 
-        <!-- Password with show/hide -->
+        <!-- Password -->
         <div class="input-group mb-3">
           <div class="form-floating grow">
             <input
@@ -75,53 +109,27 @@
             class="btn btn-outline-secondary border-start-0"
             @click="showPassword = !showPassword"
             tabindex="-1"
+            aria-label="Toggle password visibility"
           >
             <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
           </button>
         </div>
 
-        <!-- <button
+        <!-- Submit -->
+        <BaseButton
           type="submit"
-          class="btn btn-primary w-100 py-3 fw-semibold rounded-3"
-          :disabled="loading"
+          variant="primary"
+          size="lg"
+          block
+          :loading="authStore.loading"
+          icon-left="bi-box-arrow-in-right"
         >
-          <span v-if="!loading">Sign In</span>
-          <span v-else>
-            <span class="spinner-border spinner-border-sm me-2"></span> Signing
-            in...
-          </span>
-        </button> -->
-
-        <!-- Button — use store loading -->
-        <button class="btn btn-primary w-100 py-3 fw-semibold rotate-3" type="submit" :disabled="authStore.loading">
-          <span v-if="!authStore.loading">Login</span>
-          <span v-else>
-            <span class="spinner-border spinner-border-sm me-2"></span> Signing
-            in...
-          </span>
-        </button>
+          Login
+        </BaseButton>
       </form>
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref, reactive } from "vue";
-import { useAuthStore } from "../stores/Authstore ";
-
-const authStore = useAuthStore();
-const showPassword = ref(false);
-
-const form = reactive({
-  email: "",
-  password: "",
-});
-
-const handleLogin = async () => {
-  authStore.clearError();
-  await authStore.login(form.email, form.password);
-};
-</script>
 
 <style scoped>
 .login-wrapper {
@@ -145,7 +153,7 @@ const handleLogin = async () => {
   font-weight: 700;
 }
 
-/* Fix for floating label inside input-group */
+/* Floating label inside input-group */
 .input-group .form-floating .form-control {
   border-radius: 0.375rem 0 0 0.375rem;
 }

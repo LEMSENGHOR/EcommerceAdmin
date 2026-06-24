@@ -1,5 +1,5 @@
 <template>
-  <AdminLayout pageTitle="រទេះទំនិញ">
+  <!-- <AdminLayout pageTitle="រទេះទំនិញ"> -->
     <div class="data-card bg-white border rounded-3 shadow-sm p-4">
       <!-- Header -->
       <div class="card-header-custom d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
@@ -148,7 +148,7 @@
         </div>
       </div>
     </div>
-  </AdminLayout>
+  <!-- </AdminLayout> -->
 </template>
 
 <script setup>

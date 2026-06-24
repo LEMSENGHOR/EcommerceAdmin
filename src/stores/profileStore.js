@@ -24,9 +24,7 @@ export const useProfileStore = defineStore("profile", () => {
   // ── Helpers ────────────────────────────────────────
   const resolveAvatar = (path) => {
     if (!path) return null;
-    // If it's already a full URL (AWS S3, CDN, etc), return it
     if (path.startsWith("http://") || path.startsWith("https://")) return path;
-    // If it's a relative path, prepend the Backend URL
     if (path.startsWith("/")) return import.meta.env.VITE_BASE_URL + path;
     return path;
   };
@@ -50,7 +48,6 @@ export const useProfileStore = defineStore("profile", () => {
   const fetchProfile = async () => {
     loading.value = true;
     try {
-      // api.js adds /api, so this requests /api/me
       const res = await api.get("/me");
       const user = unwrap(res);
 
@@ -73,11 +70,9 @@ export const useProfileStore = defineStore("profile", () => {
   };
 
   // ── 2. Update Info ─────────────────────────────────
-  // Corrected: Removed '/api' prefix because api.js handles it
   const updateProfile = async (payload) => {
     saving.value = true;
     try {
-      // This requests /api/profile/info
       await api.put("/profile/info", {
         name: payload.name,
         email: payload.email,
@@ -85,7 +80,6 @@ export const useProfileStore = defineStore("profile", () => {
         location: payload.location,
       });
 
-      // Update local state
       profile.value.name = payload.name;
       profile.value.email = payload.email;
       profile.value.phone = payload.phone;
@@ -101,11 +95,9 @@ export const useProfileStore = defineStore("profile", () => {
   };
 
   // ── 3. Change Password ─────────────────────────────
-  // Corrected: Removed '/api' prefix
   const changePassword = async (payload) => {
     changingPwd.value = true;
     try {
-      // This requests /api/profile/change-pass
       await api.put("/profile/change-pass", {
         current_password: payload.current,
         password: payload.newPwd,
@@ -121,7 +113,6 @@ export const useProfileStore = defineStore("profile", () => {
   };
 
   // ── 4. Upload Avatar ───────────────────────────────
-  // Corrected: Removed '/api' prefix AND removed manual Content-Type header
   const uploadAvatar = async (file) => {
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
@@ -130,14 +121,9 @@ export const useProfileStore = defineStore("profile", () => {
 
     uploadingAvatar.value = true;
     const formData = new FormData();
-    // formData.append("avatar", file);
-    // formData.append("file", file);
     formData.append("image", file);
-    // formData.append("_method", "POST"); // or "PUT" depending on your route
-    // formData.append("avatar", file);
 
     try {
-      // Axios automatically detects FormData and sets the correct headers with boundary
       const res = await api.post("/profile/image", formData);
 
       const updated = unwrap(res);
@@ -147,7 +133,6 @@ export const useProfileStore = defineStore("profile", () => {
 
       return true;
     } catch (err) {
-       console.log("Backend Error Details:", err.response?.data);
       console.error("uploadAvatar error:", err);
       throw err;
     } finally {
@@ -156,11 +141,9 @@ export const useProfileStore = defineStore("profile", () => {
   };
 
   // ── 5. Delete Avatar ───────────────────────────────
-  // Corrected: Removed '/api' prefix
   const deleteAvatar = async () => {
     deletingAvatar.value = true;
     try {
-      // This requests /api/profile/image
       await api.delete("/profile/image");
       profile.value.avatar = null;
       return true;

@@ -1,5 +1,5 @@
 <template>
-  <AdminLayout pageTitle="Dashboard">
+  <!-- <AdminLayout pageTitle="Dashboard"> -->
     <!-- Toast Notification -->
     <Transition name="toast">
       <div
@@ -474,7 +474,7 @@
         </div>
       </div>
     </div>
-  </AdminLayout>
+  <!-- </AdminLayout> -->
 </template>
 
 <script setup>
@@ -483,7 +483,9 @@ import AdminLayout from "@/layouts/AdminLayout.vue";
 import { useDashboardStore } from "@/stores/DashboardStore.js";
 import { useProductsStore } from "@/stores/ProductsStore.js";
 import { useCategoryStore } from "@/stores/categoryStore.js";
+import { useAuthStore } from "@/stores/Authstore";
 
+const authStore = useAuthStore();
 // ── Stores ──────────────────────────────────────────
 const dashboardStore = useDashboardStore();
 const productsStore = useProductsStore();
