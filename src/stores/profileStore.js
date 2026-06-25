@@ -17,7 +17,6 @@ export const useProfileStore = defineStore("profile", () => {
 
   const loading = ref(false);
   const saving = ref(false);
-  const changingPwd = ref(false);
   const deletingAvatar = ref(false);
   const uploadingAvatar = ref(false);
 
@@ -94,29 +93,11 @@ export const useProfileStore = defineStore("profile", () => {
     }
   };
 
-  // ── 3. Change Password ─────────────────────────────
-  const changePassword = async (payload) => {
-    changingPwd.value = true;
-    try {
-      await api.put("/profile/change-pass", {
-        current_password: payload.current,
-        password: payload.newPwd,
-        password_confirmation: payload.confirm,
-      });
-      return true;
-    } catch (err) {
-      console.error("changePassword error:", err);
-      throw err;
-    } finally {
-      changingPwd.value = false;
-    }
-  };
-
-  // ── 4. Upload Avatar ───────────────────────────────
+  // ── 3. Upload Avatar ───────────────────────────────
   const uploadAvatar = async (file) => {
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      throw new Error("រូបភាពមិនត្រឹមមានទំហំ 2MB"); // Max 2MB
+      throw new Error("រូបភាពមិនត្រឹមមានទំហំ 2MB");
     }
 
     uploadingAvatar.value = true;
@@ -124,7 +105,11 @@ export const useProfileStore = defineStore("profile", () => {
     formData.append("image", file);
 
     try {
-      const res = await api.post("/profile/image", formData);
+      const res = await api.post("/profile/image", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       const updated = unwrap(res);
       profile.value.avatar = updated?.avatar
@@ -140,7 +125,7 @@ export const useProfileStore = defineStore("profile", () => {
     }
   };
 
-  // ── 5. Delete Avatar ───────────────────────────────
+  // ── 4. Delete Avatar ───────────────────────────────
   const deleteAvatar = async () => {
     deletingAvatar.value = true;
     try {
@@ -159,12 +144,10 @@ export const useProfileStore = defineStore("profile", () => {
     profile,
     loading,
     saving,
-    changingPwd,
     deletingAvatar,
     uploadingAvatar,
     fetchProfile,
     updateProfile,
-    changePassword,
     uploadAvatar,
     deleteAvatar,
   };

@@ -1,6 +1,7 @@
 <script setup>
 import { useUser } from '../composables/useUser'
 
+
 const props = defineProps({
   pageTitle: {
     type: String,
@@ -61,7 +62,13 @@ const { userName, userInitial, hasAvatar, userAvatar } = useUser()
         </button>
 
         <!-- User Info (Desktop) -->
-        <div class="d-flex align-items-center gap-2 d-none d-md-flex">
+          <router-link class=" text-decoration-none text-black"
+            to="/profile"
+            
+            @click="emit('close')"
+          >
+             <div class="d-flex align-items-center gap-2 d-none d-md-flex">
+          
           <img
             v-if="hasAvatar"
             :src="userAvatar"
@@ -78,6 +85,25 @@ const { userName, userInitial, hasAvatar, userAvatar } = useUser()
           </div>
           <span class="fw-bold small">{{ userName }}</span>
         </div>
+          </router-link>
+        <!-- <div class="d-flex align-items-center gap-2 d-none d-md-flex">
+          
+          <img
+            v-if="hasAvatar"
+            :src="userAvatar"
+            class="rounded-circle object-fit-cover me-2"
+            style="width: 40px; height: 40px"
+            alt="Avatar"
+          />
+          <div
+            v-else
+            class="avatar-circle rounded-circle bg-primary text-white d-flex justify-content-center align-items-center fw-bold"
+            style="width: 40px; height: 40px; font-size: 0.9rem"
+          >
+            {{ userInitial }}
+          </div>
+          <span class="fw-bold small">{{ userName }}</span>
+        </div> -->
       </div>
     </div>
   </header>

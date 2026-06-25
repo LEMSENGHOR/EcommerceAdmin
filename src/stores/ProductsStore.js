@@ -41,7 +41,7 @@ export const useProductsStore = defineStore("products", {
 
     searchQuery: "",
     currentPage: 1,
-    perPage: 8,
+    perPage: 6,
     total: 0,
     lastPage: 1,
     totalValue: 0,

@@ -67,44 +67,6 @@ const router = createRouter({
           meta: { pageTitle: "ប្រវត្តិរូប" },
         },
       ],
-      // children: [
-      //   {
-      //     path: "",
-      //     name: "Dashboard",
-      //     component: Dashboard,
-      //   },
-      //   {
-      //     path: "products",
-      //     name: "products",
-      //     component: Products,
-      //   },
-      //   {
-      //     path: "devices",
-      //     name: "devices",
-      //     component: Devices,
-      //   },
-      //   {
-      //     path: "categories",
-      //     name: "categories",
-      //     component: Categories,
-      //     meta: { pageTitle: "ប្រភេទផលិតផល" },
-      //   },
-      //   {
-      //     path: "carts",
-      //     name: "carts",
-      //     component: Carts,
-      //   },
-      //   {
-      //     path: "payments", // ✅ moved inside AdminLayout children
-      //     name: "payments",
-      //     component: Payments,
-      //   },
-      //   {
-      //     path: "profile", // ✅ moved inside AdminLayout children
-      //     name: "profile",
-      //     component: Profile,
-      //   },
-      // ],
     },
   ],
 });
